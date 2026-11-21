@@ -2,6 +2,7 @@
 import type { Genre } from '../room/types';
 import type { BookInfo } from './nl';
 import { normalizeIsbn } from './isbn';
+import { withSeries } from './series';
 
 export interface GVolume {
   id?: string;
@@ -45,10 +46,12 @@ export function normalizeVolume(v: GVolume): BookInfo | null {
 
 export const GOOGLE_URL = 'https://www.googleapis.com/books/v1/volumes';
 /** 서버에서 호출. key가 없어도 동작(하루 사용량이 적을 때). 429면 사용량 초과 */
-export async function googleSearch(q: { isbn?: string; title?: string }, key?: string, fetchImpl: typeof fetch = fetch) {
+export async function googleSearch(q: { isbn?: string; title?: string; start?: number }, key?: string, fetchImpl: typeof fetch = fetch) {
   const u = new URL(GOOGLE_URL);
-  u.searchParams.set('q', q.isbn ? `isbn:${q.isbn}` : (q.title ?? ''));
-  u.searchParams.set('maxResults', '20');
+  // 제목 검색은 intitle: 로 제한(책 소개문에만 단어가 있는 무관한 책 제외)
+  u.searchParams.set('q', q.isbn ? `isbn:${q.isbn}` : (q.title ?? '').trim().split(/\s+/).map((w) => `intitle:${w}`).join(' '));
+  u.searchParams.set('maxResults', '40');
+  if (q.start) u.searchParams.set('startIndex', String(q.start));
   u.searchParams.set('printType', 'books');
   if (!q.isbn) u.searchParams.set('langRestrict', 'ko');
   if (key) u.searchParams.set('key', key);
@@ -57,7 +60,7 @@ export async function googleSearch(q: { isbn?: string; title?: string }, key?: s
   if (!r.ok) throw new Error(`google books http ${r.status}`);
   const j = (await r.json()) as GResponse;
   const seen = new Set<string>();
-  return (j.items ?? []).map(normalizeVolume).filter((b): b is BookInfo => {
+  return (j.items ?? []).map(normalizeVolume).map((b) => (b ? withSeries(b) : b)).filter((b): b is BookInfo => {
     if (!b || seen.has(b.isbn)) return false;
     seen.add(b.isbn);
     return true;

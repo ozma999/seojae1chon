@@ -136,3 +136,8 @@ img.pix, .pix { image-rendering: pixelated; }
 a.btn, a.chip { text-decoration: none; color: inherit; }
 a.btn.primary { color: var(--pri-ink); }
 .rules li.ok { color: var(--acc); }
+.vols { list-style: none; padding: 0; margin: 8px 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-height: 46dvh; overflow: auto; }
+.vols label { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px; padding: 8px; min-height: 44px; background: #fff; cursor: pointer; font-size: 14px; }
+.vols label.owned { opacity: .55; cursor: default; }
+.vols input { width: 18px; height: 18px; min-height: 0; padding: 0; accent-color: var(--pri); flex: none; }
+.vols small { color: var(--muted); font-size: 11px; }

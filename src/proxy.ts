@@ -25,7 +25,7 @@ export async function proxy(request: NextRequest) {
     to.pathname = '/room';
     return NextResponse.redirect(to);
   }
-  if (!data.user && path !== '/' && !PUBLIC.some((p) => path.startsWith(p)) && !path.startsWith('/api/books/lookup')) {
+  if (!data.user && path !== '/' && !PUBLIC.some((p) => path.startsWith(p)) && !path.startsWith('/api/books/')) {
     const to = request.nextUrl.clone();
     to.pathname = '/';
     return NextResponse.redirect(to);

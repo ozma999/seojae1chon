@@ -36,6 +36,8 @@ export interface Repo {
   mode: 'demo' | 'live';
   load(): Promise<{ profile: Profile; entries: LibraryEntry[] }>;
   lookup(q: { isbn?: string; title?: string }): Promise<BookInfo[]>;
+  /** 시리즈의 모든 권(1권부터) */
+  seriesVolumes(series: string, publisher?: string | null): Promise<BookInfo[]>;
   add(info: BookInfo, opts: { method: AddMethod; format?: 'paper' | 'ebook' }): Promise<LibraryEntry>;
   remove(id: string): Promise<void>;
   updateEntry(id: string, patch: { userGenre?: Genre | null; comment?: string | null; bragAt?: number | null; bragText?: string | null }): Promise<void>;

@@ -1,6 +1,7 @@
 // 국립중앙도서관 ISBN 서지정보 API(seoji) 응답 → 앱의 책 정보
 import type { Genre } from '../room/types';
 import { normalizeIsbn } from './isbn';
+import { withSeries } from './series';
 
 /** API 원본 한 건(필요한 필드만). 값은 모두 문자열이고 비어 있을 수 있다 */
 export interface SeojiDoc {
@@ -109,5 +110,5 @@ export async function seojiSearch(key: string, q: { isbn?: string; title?: strin
   if (!r.ok) throw new Error(`seoji http ${r.status}`);
   const j = (await r.json()) as SeojiResponse;
   if (j.RESULT === 'ERROR') throw new Error(`seoji error: ${j.ERR_MESSAGE ?? 'unknown'}`);
-  return (j.docs ?? []).map(normalizeDoc).filter((b): b is BookInfo => b !== null);
+  return (j.docs ?? []).map(normalizeDoc).filter((b): b is BookInfo => b !== null).map(withSeries);
 }

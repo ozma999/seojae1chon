@@ -58,6 +58,11 @@ export function liveRepo(): Repo {
       if (error) throw new Error(error.message);
       return data as string;
     },
+    async seriesVolumes(series, publisher) {
+      const r = await fetch(`/api/books/series?${new URLSearchParams({ name: series, ...(publisher ? { publisher } : {}) })}`);
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? '시리즈를 불러오지 못했어요');
+      return (await r.json()).books as BookInfo[];
+    },
     async lookup(q) {
       const r = await fetch(`/api/books/lookup?${new URLSearchParams(q.isbn ? { isbn: q.isbn } : { q: q.title ?? '' })}`);
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? '검색 실패');
