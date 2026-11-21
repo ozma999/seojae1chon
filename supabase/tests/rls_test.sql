@@ -19,8 +19,11 @@ select pg_temp.expect_fail($$insert into auth.users (email, raw_user_meta_data) 
 select pg_temp.expect_fail($$insert into auth.users (email) values ('e@x')$$, '코드 없음');
 do $$ begin assert (select count(*) from public.profiles) = 2, 'profiles 2개'; end $$;
 
--- 서버(서지 캐시)
+-- 서버(서지 캐시): service_role 권한으로 upsert
+set role service_role;
 insert into public.books (isbn, title, genre) values ('9788936434120', '채식주의자', 'lit'), ('9788901234567', '테스트', 'sf');
+insert into public.books (isbn, title) values ('9788936434120', '채식주의자') on conflict (isbn) do update set title = excluded.title;
+reset role;
 
 set role authenticated;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
@@ -32,6 +35,7 @@ select pg_temp.expect_fail($$insert into public.books (isbn, title) values ('978
 select pg_temp.expect_fail($$insert into public.user_books (user_id, isbn) values ('00000000-0000-0000-0000-00000000000b', '9788936434120')$$, '남의 서재에 책 넣기');
 select pg_temp.expect_fail($$update public.user_books set verified = true$$, '실물 인증 위조');
 select pg_temp.expect_fail($$update public.profiles set invited_by = null$$, '초대자 바꾸기');
+do $$ begin assert (select count(*) from public.profiles where id = auth.uid()) = 1, '내 프로필 읽기'; end $$;
 update public.profiles set room_name = '현우의 서재', hair = 2 where id = auth.uid();
 -- 초대 코드 만들기
 do $$ declare c text := public.create_invite(); begin assert c ~ '^[A-Z0-9]{6}$', 'code 형식'; assert public.check_invite(c), '새 코드 유효'; end $$;
@@ -61,7 +65,8 @@ select pg_temp.expect_fail($$insert into public.user_books (isbn, brag_at) value
 
 -- 로그인 안 한 사용자(anon)는 아무것도 못 본다
 reset role; set role anon; select pg_temp.as_user(null);
-do $$ begin assert (select count(*) from public.user_books) = 0, 'anon 서재 안 보임'; end $$;
+select pg_temp.expect_fail($$select count(*) from public.user_books$$, 'anon 서재 읽기');
+select pg_temp.expect_fail($$select count(*) from public.profiles$$, 'anon 프로필 읽기');
 select pg_temp.expect_fail($$select public.create_invite()$$, 'anon 초대 코드 만들기');
 do $$ begin assert public.check_invite('ZZZZZZ') = false; end $$;
 reset role;

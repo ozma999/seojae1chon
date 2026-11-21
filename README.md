@@ -28,7 +28,7 @@ npm run typecheck && npm run lint && npm run build
 ## Supabase 연결(실서비스 모드)
 
 1. supabase.com에서 프로젝트를 만든다(리전: Seoul).
-2. SQL Editor에서 `supabase/migrations/20261121000000_init.sql`을 실행한다(또는 Supabase CLI `supabase db push`).
+2. SQL Editor에서 `supabase/migrations/`의 SQL 파일을 **이름 순서대로** 모두 실행한다(또는 Supabase CLI `supabase db push`).
 3. Authentication 설정
    - Email provider 켜기, 비밀번호 최소 8자, Password requirements = **소문자·대문자·숫자·기호**(앱 규칙 `src/lib/auth/password.ts`와 같아야 함)
    - Confirm email: 지인 테스트 동안은 끔(기본 메일 발송은 팀원 주소로만, 시간당 몇 통). 메일 발송 서비스(SMTP) 연결 뒤 다시 켜기
