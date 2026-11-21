@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseServer, supabaseService } from '@/lib/supabase/server';
-import { lookupBooks } from '@/lib/books/store';
+import { bookToRow, lookupBooks } from '@/lib/books/store';
 import { ENTRY_SELECT } from '@/lib/data/live-shared';
 import { normalizeIsbn } from '@/lib/books/isbn';
 
@@ -18,7 +18,11 @@ export async function POST(req: NextRequest) {
   const { data: cached } = await sb.from('books').select('isbn').eq('isbn', isbn).maybeSingle();
   if (!cached) {
     const { books } = await lookupBooks({ isbn });
-    if (!books.length) return NextResponse.json({ error: '국립중앙도서관에서 찾지 못한 책이에요' }, { status: 404 });
+    const b = books.find((x) => x.isbn === isbn);
+    if (!b) return NextResponse.json({ error: '국립중앙도서관에서 찾지 못한 책이에요' }, { status: 404 });
+    // 국립중앙도서관 결과는 lookupBooks가 이미 캐시에 넣지만, 키가 없을 때의 임시 목록도 여기서 저장한다
+    const { error: upErr } = await supabaseService()!.from('books').upsert(bookToRow(b), { onConflict: 'isbn' });
+    if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
   }
   const { data, error } = await sb.from('user_books')
     .insert({ isbn, method, format, verified: method === 'barcode' || method === 'photo' })
