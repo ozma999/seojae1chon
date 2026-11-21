@@ -1,4 +1,6 @@
 'use client';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { isLive } from '@/lib/supabase/env';
@@ -13,8 +15,9 @@ export default function LoginPage() {
 function Login() {
   const router = useRouter();
   const live = isLive();
-  const invited = (useSearchParams().get('code') ?? '').toUpperCase().slice(0, 6);
-  const [mode, setMode] = useState<'in' | 'up' | 'reset'>(invited ? 'up' : 'in');
+  const sp = useSearchParams();
+  const invited = (sp.get('code') ?? '').toUpperCase().slice(0, 6);
+  const [mode, setMode] = useState<'in' | 'up' | 'reset'>(invited || sp.get('join') ? 'up' : 'in');
   const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [code, setCode] = useState(invited);
   const [msg, setMsg] = useState<string | null>(null), [busy, setBusy] = useState(false);
   const rules = passwordRules(email, pw, pw2);
@@ -49,7 +52,7 @@ function Login() {
 
   return (
     <main className="login">
-      <h1 className="logo big">서재일촌</h1>
+      <Link href="/" className="loginlogo"><Image src="/brand/logo.png" alt="서재일촌" width={224} height={32} className="pix" priority /></Link>
       <p className="muted">책이 쌓일수록 넓어지는 픽셀 서재</p>
       {!live && <p className="demobar">데모 모드예요. Supabase를 연결하기 전에는 이 브라우저에만 저장돼요.</p>}
       <div className="tabs" role="tablist">

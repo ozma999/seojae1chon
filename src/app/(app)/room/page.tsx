@@ -1,4 +1,5 @@
 'use client';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RoomCanvas } from '@/components/RoomCanvas';
@@ -48,7 +49,10 @@ export default function RoomPage() {
   return (
     <div>
       <header className="bar">
-        <h1 className="logo">{profile!.roomName}</h1>
+        <div className="brand">
+          <Image src="/brand/logo.png" alt="서재일촌" width={224} height={32} className="pix" priority />
+          <h1 className="rn">· {profile!.roomName}</h1>
+        </div>
         {world && <span className="lv">Lv.{world.li + 1} {world.level.name}</span>}
       </header>
       <div className="subbar">
@@ -61,7 +65,7 @@ export default function RoomPage() {
         <p className="stat"><b>{n.toLocaleString()}</b>권 · 종이 {entries.filter((e) => e.format === 'paper').length.toLocaleString()} / 전자 {entries.filter((e) => e.format === 'ebook').length.toLocaleString()}</p>
         {nx ? (
           <div className="next">
-            <span>다음 아이템 <b className="neon">{nx.name}</b>까지 {(nx.th - n).toLocaleString()}권</span>
+            <span>다음 아이템 <b className="acc">{nx.name}</b>까지 {(nx.th - n).toLocaleString()}권</span>
             <span className="prog"><i style={{ width: `${Math.min(100, (n / nx.th) * 100)}%` }} /></span>
           </div>
         ) : <p className="next">모든 서재 아이템을 모았어요</p>}
