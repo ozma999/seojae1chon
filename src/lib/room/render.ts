@@ -35,9 +35,10 @@ export async function loadArt(base = '/art'): Promise<LoadedArt> {
 
 // ---------- 시간대 조명 ----------
 type Tint = [number, number, number, number, number, number] | null;
-const ROOM_TINT: Record<Tod, Tint> = { 새벽: [.74, .72, .9, 8, 0, 28], 낮: null, 노을: [1, .8, .66, 22, 6, 0], 밤: [.5, .55, .8, 0, 0, 14] };
-const ROOM_HALF: Record<Tod, Tint> = { 새벽: [.88, .86, .95, 4, 0, 12], 낮: null, 노을: [1, .88, .78, 12, 2, 0], 밤: [.72, .7, .78, 8, 4, 10] };
-const ROOM_LIT: Record<Tod, Tint> = { 새벽: null, 낮: null, 노을: null, 밤: [1, .94, .82, 4, 0, 0] };
+// 밤(v0.7): 깜깜하지 않게 — 창밖과 살짝 푸른 벽으로 밤을 보이고, 바닥 나무색·책장 칸은 보이게
+const ROOM_TINT: Record<Tod, Tint> = { 새벽: [.74, .72, .9, 8, 0, 28], 낮: null, 노을: [1, .8, .66, 22, 6, 0], 밤: [.74, .74, .86, 0, 0, 10] };
+const ROOM_HALF: Record<Tod, Tint> = { 새벽: [.88, .86, .95, 4, 0, 12], 낮: null, 노을: [1, .88, .78, 12, 2, 0], 밤: [.9, .88, .9, 6, 4, 4] };
+const ROOM_LIT: Record<Tod, Tint> = { 새벽: null, 낮: null, 노을: null, 밤: [1, .97, .9, 4, 2, 0] };
 type Light = ArtLevel['lights'][number];
 
 function makeShader(pal: [number, number, number][]) {

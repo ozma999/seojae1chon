@@ -51,6 +51,10 @@ describe('대표 책 테마', () => {
     expect(autoTheme([book(1, { genre: 'sf', bragAt: 3 }), book(2, { genre: 'hum', bragAt: 2 })])).toBe('space');
     expect(autoTheme([book(1, { genre: 'manga', bragAt: 1 }), book(2, { genre: 'manga', bragAt: 2 }), book(3, { genre: 'sf', bragAt: 9 })])).toBe('manga');
   });
+  it('기본 스탠드는 책 0권부터, 다음 아이템 계산에는 안 걸림', () => {
+    expect(art.itemdefs[0]).toMatchObject({ id: 'desklamp', th: 0 });
+    expect(art.levels.every((L) => L.items.some((i) => i.id === 'desklamp') && L.lights.some((l) => l.id === 'desklamp'))).toBe(true);
+  });
   it('다음 아이템', () => {
     expect(nextItem(art, 0)?.id).toBe('rug');
     expect(nextItem(art, 650)?.id).toBe('ladder');

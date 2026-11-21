@@ -99,6 +99,26 @@ def rail_ladder(s,rx0,rx1,ry,lx,ly1,slope=0.15,rail=None):
     xe=int(lx+(ly1-y0)*slope)
     for wx in (xe,xe+13): s.R(wx-1,ly1-4,wx+4,ly1+1,'greyD');s.P(wx+1,ly1-3,'grey')
     if rail: rail(xe-8,xe+26)
+def banker_lamp(s, x, yb):
+    """기본 스탠드: 협탁 위 뱅커스 램프(초록 유리 갓, 놋쇠 받침·기둥, 당김줄). 반환: 갓 아래 빛 중심"""
+    shadow(s, x - 2, x + 20, yb + 1)
+    box3d(s, x, yb - 14, 18, 3, 5, 'wood', 'woodD', 'woodD')               # 협탁 상판(바닥과 구분되게 짙은 나무)
+    s.R(x + 2, yb - 11, x + 4, yb, 'O'); s.R(x + 14, yb - 11, x + 16, yb, 'O')   # 다리
+    t = yb - 16                                                              # 상판 윗면(앞면 위 2px)
+    # 놋쇠 받침(납작한 타원)
+    s.R(x + 4, t - 3, x + 14, t, 'O'); s.R(x + 5, t - 2, x + 13, t, 'yellowD'); s.R(x + 5, t - 2, x + 12, t - 1, 'yellow')
+    # 기둥: 받침 뒤쪽에서 올라가 갓을 받친다
+    s.R(x + 8, t - 10, x + 10, t - 3, 'O'); s.P(x + 9, t - 9, 'yellow'); s.P(x + 9, t - 7, 'yellowD'); s.P(x + 9, t - 5, 'yellow')
+    # 초록 유리 갓: 가로로 긴 반원통
+    s.R(x + 2, t - 15, x + 16, t - 10, 'O')
+    s.R(x + 1, t - 13, x + 17, t - 10, 'O')
+    s.R(x + 3, t - 14, x + 15, t - 11, 'green'); s.R(x + 2, t - 12, x + 16, t - 11, 'green')
+    s.R(x + 2, t - 11, x + 16, t - 10, 'greenD')                             # 갓 아래 테
+    s.R(x + 4, t - 14, x + 9, t - 13, 'white')                               # 유리 반사
+    s.R(x + 3, t - 10, x + 15, t - 9, 'yellow')                              # 갓 아래 불빛
+    # 당김줄
+    s.P(x + 13, t - 9, 'yellowD'); s.P(x + 13, t - 8, 'yellowD'); s.P(x + 13, t - 7, 'yellow')
+    return (x + 9, t - 8)
 def cushions(s,x,y):
     box3d(s,x,y-10,16,10,4,'white','cream','wallD');box3d(s,x+22,y-9,16,9,4,'pink','pink','redD')
 
@@ -126,7 +146,7 @@ def side_win(s,side,x_a,x_b,Ya,Yb):
     xm=(x_a+x_b)//2;s.line((xm,s.sidey(xm,Ya,side)),(xm,s.sidey(xm,Yb,side)),'wood')
     s.line((x_a,s.sidey(x_a,(Ya+Yb)/2,side)),(x_b,s.sidey(x_b,(Ya+Yb)/2,side)),'wood')
 
-ITEMS=[('rug',10,'러그'),('pile',30,'책 더미'),('plant',50,'화분'),('lamp',100,'스탠드 조명'),('deco',150,'액자와 엽서'),
+ITEMS=[('desklamp',0,'기본 스탠드'),('rug',10,'러그'),('pile',30,'책 더미'),('plant',50,'화분'),('lamp',100,'스탠드 조명'),('deco',150,'액자와 엽서'),
        ('chair',200,'1인 소파와 테이블'),('pendant',300,'펜던트 조명'),('valance',500,'창 커튼'),('ladder',700,'사다리'),
        ('globe',1000,'지구본'),('cushion',1500,'창가 쿠션')]
 
@@ -143,7 +163,8 @@ def L1(theme='attic'):
     for i,yb in enumerate([42,64,86,108,bl]): s.fill(36,101,yb,18 if i else 16,10+i)
     tr,br=s.shelf(186,56,258,[82,106],dep=10);brag(s,191,82,3,62)
     s.fill(190,253,106,18,30);s.fill(190,253,br,18,31)
-    items={'rug':[F_(lambda:rug(s,144,199,56,13),0)],
+    items={'desklamp':[F_(lambda:banker_lamp(s,100,186),186)],
+       'rug':[F_(lambda:rug(s,144,199,56,13),0)],
        'pile':[F_(lambda:pile(s,40,194,[(24,BOOKS[2],0),(20,BOOKS[6],3),(23,BOOKS[9],-1),(17,BOOKS[3],4)]),194)],
        'plant':[W_(lambda:pot_plant(s,240,52))],
        'lamp':[F_(lambda:floorlamp(s,266,104,186),189)],
@@ -165,7 +186,8 @@ def L2(theme='attic'):
     for i,yb in enumerate([62,106,128,150,b3]): s.fill(232,297,yb,18,60+i)
     t4,b4=s.shelf(306,22,354,[44,66,88,110,132,154],dep=10)
     for i,yb in enumerate([44,66,88,110,132,154,b4]): s.fill(310,351,yb,18,70+i)
-    items={'rug':[F_(lambda:rug(s,192,258,74,16),0)],
+    items={'desklamp':[F_(lambda:banker_lamp(s,110,236),236)],
+       'rug':[F_(lambda:rug(s,192,258,74,16),0)],
        'pile':[F_(lambda:pile(s,116,262,[(20,BOOKS[2],0),(18,BOOKS[9],2),(16,BOOKS[0],1)]),262)],
        'plant':[F_(lambda:pot_plant(s,338,276),276)],
        'lamp':[F_(lambda:floorlamp(s,320,170,258),261)],
@@ -193,7 +215,8 @@ def L3(theme='attic'):
     rowsY=[74+22*k for k in range(1,9)]
     s.side_shelf('L',8,74,268,rowsY,301);s.side_shelf('R',503,74,268,rowsY,302)
     side_win(s,'L',38,16,28,62);side_win(s,'R',474,496,28,62)
-    items={'rug':[F_(lambda:rug(s,268,334,104,20),0)],
+    items={'desklamp':[F_(lambda:banker_lamp(s,174,300),300)],
+       'rug':[F_(lambda:rug(s,268,334,104,20),0)],
        'pile':[F_(lambda:pile(s,170,352,[(26,BOOKS[2],0),(22,BOOKS[6],3),(24,BOOKS[9],-1),(18,BOOKS[3],4)]),352),
                F_(lambda:pile(s,392,336,[(24,BOOKS[5],0),(20,BOOKS[7],2),(22,BOOKS[4],-2)]),336)],
        'plant':[F_(lambda:pot_plant(s,452,332,True),332)],
@@ -239,7 +262,8 @@ def L4(theme='attic'):
     for i in range(13):
         x=96+i*16;y=398-i*14
         box3d(s,x,y-12,30,12,4,'woodL','wood','woodD')
-    items={'rug':[F_(lambda:rug(s,404,478,160,32),0)],
+    items={'desklamp':[F_(lambda:banker_lamp(s,198,444),444)],
+       'rug':[F_(lambda:rug(s,404,478,160,32),0)],
        'pile':[F_(lambda:pile(s,250,502,[(26,BOOKS[2],0),(22,BOOKS[6],3),(24,BOOKS[9],-1),(18,BOOKS[3],4)]),502),
                F_(lambda:pile(s,600,522,[(24,BOOKS[5],0),(20,BOOKS[7],2),(22,BOOKS[4],-2)]),522)],
        'plant':[F_(lambda:pot_plant(s,40,522,True),522),F_(lambda:pot_plant(s,700,542,True),542)],
@@ -255,10 +279,10 @@ def L4(theme='attic'):
 LEVELS=[L1,L2,L3,L4]
 # 저녁·밤·새벽에 켜지는 조명이 밝히는 범위(타원 중심 x,y와 반지름). 아이템이 켜져 있을 때만 적용.
 LIGHTS=[
- [dict(id='pendant',x=144,y=118,rx=96,ry=96),dict(id='lamp',x=267,y=150,rx=40,ry=52)],
- [dict(id='pendant',x=192,y=160,rx=128,ry=124),dict(id='lamp',x=321,y=214,rx=46,ry=58)],
- [dict(id='pendant',x=256,y=214,rx=160,ry=170),dict(id='lamp',x=77,y=288,rx=52,ry=60)],
- [dict(id='pendant',x=384,y=330,rx=240,ry=250),dict(id='lamp',x=607,y=442,rx=62,ry=66)]]
+ [dict(id='desklamp',x=109,y=180,rx=58,ry=52),dict(id='pendant',x=144,y=118,rx=96,ry=96),dict(id='lamp',x=267,y=150,rx=40,ry=52)],
+ [dict(id='desklamp',x=119,y=230,rx=62,ry=56),dict(id='pendant',x=192,y=160,rx=128,ry=124),dict(id='lamp',x=321,y=214,rx=46,ry=58)],
+ [dict(id='desklamp',x=183,y=294,rx=70,ry=62),dict(id='pendant',x=256,y=214,rx=160,ry=170),dict(id='lamp',x=77,y=288,rx=52,ry=60)],
+ [dict(id='desklamp',x=207,y=438,rx=80,ry=70),dict(id='pendant',x=384,y=330,rx=240,ry=250),dict(id='lamp',x=607,y=442,rx=62,ry=66)]]
 NAMES=['클로즈업','방','큰 서재','복층 서재']
 
 # ---------- 레이어 추출 ----------

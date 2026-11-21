@@ -2,7 +2,7 @@ export type Tod = '새벽' | '낮' | '노을' | '밤';
 export type ThemeKey = 'attic' | 'space' | 'manga' | 'study';
 export type Genre = 'lit' | 'sf' | 'manga' | 'hum';
 export type ItemId =
-  | 'rug' | 'pile' | 'plant' | 'lamp' | 'deco' | 'chair'
+  | 'desklamp' | 'rug' | 'pile' | 'plant' | 'lamp' | 'deco' | 'chair'
   | 'pendant' | 'valance' | 'ladder' | 'globe' | 'cushion';
 
 /** public/art/manifest.json — art/rooms.py → art/split_art.py 가 만든다 */
