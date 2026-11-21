@@ -30,7 +30,8 @@ npm run typecheck && npm run lint && npm run build
 1. supabase.com에서 프로젝트를 만든다(리전: Seoul).
 2. SQL Editor에서 `supabase/migrations/20261121000000_init.sql`을 실행한다(또는 Supabase CLI `supabase db push`).
 3. Authentication 설정
-   - Email provider 켜기, 비밀번호 최소 8자, 문자+숫자 요구
+   - Email provider 켜기, 비밀번호 최소 8자, Password requirements = **소문자·대문자·숫자·기호**(앱 규칙 `src/lib/auth/password.ts`와 같아야 함)
+   - Confirm email: 지인 테스트 동안은 끔(기본 메일 발송은 팀원 주소로만, 시간당 몇 통). 메일 발송 서비스(SMTP) 연결 뒤 다시 켜기
    - 유출 비밀번호 차단(Leaked password protection) 켜기. 요금제에 따라 제공 여부가 다를 수 있으니 확인
    - URL Configuration: Site URL과 Redirect URL에 `https://<도메인>/auth/callback` 추가
    - 이메일 템플릿(인증·비밀번호 재설정)을 한국어로 바꾸고, 재설정 링크 유효 시간은 30분 권장

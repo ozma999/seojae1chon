@@ -4,11 +4,8 @@ import { useRouter } from 'next/navigation';
 import { isLive } from '@/lib/supabase/env';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { demoReset } from '@/lib/data/demo';
-import { passwordRules } from '@/lib/auth/password';
+import { passwordRules, RULE_TEXT } from '@/lib/auth/password';
 
-const RULES: [keyof ReturnType<typeof passwordRules>, string][] = [
-  ['len', '8자 이상'], ['mix', '영문과 숫자를 함께'], ['mail', '이메일 아이디를 넣지 않기'], ['same', '비밀번호 확인과 같음'],
-];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,7 +31,8 @@ export default function LoginPage() {
         if (!valid) throw new Error('초대 코드가 맞지 않거나 이미 쓰였어요');
         const { data, error } = await sb.auth.signUp({ email, password: pw, options: {
           data: { invite_code: code.toUpperCase() }, emailRedirectTo: `${location.origin}/auth/callback?next=/room` } });
-        if (error) throw new Error(/pwned|leaked|weak/i.test(error.message) ? '이미 유출된 적 있는 비밀번호예요. 다른 비밀번호를 써 주세요' : error.message);
+        if (error) throw new Error(/pwned|leaked/i.test(error.message) ? '이미 유출된 적 있는 비밀번호예요. 다른 비밀번호를 써 주세요'
+          : /weak|password/i.test(error.message) ? '비밀번호가 약해요. 소문자·대문자·숫자·기호를 모두 넣어 8자 이상으로 써 주세요' : error.message);
         if (data.session) { router.push('/room'); router.refresh(); }
         else setMsg('인증 메일을 보냈어요. 메일의 링크를 누르면 빈 서재가 열려요.');
       } else {
@@ -62,7 +60,7 @@ export default function LoginPage() {
         {mode === 'up' && (
           <>
             <label className="field">비밀번호 확인<input type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></label>
-            <ul className="rules">{RULES.map(([k, t]) => <li key={k} className={rules[k] ? 'ok' : ''}>{t}</li>)}</ul>
+            <ul className="rules">{RULE_TEXT.map(([k, t]) => <li key={k} className={rules[k] ? 'ok' : ''}>{t}</li>)}</ul>
             <p className="muted small">다른 사이트에서 쓰지 않는 새 비밀번호를 써 주세요. 이미 유출된 비밀번호는 가입이 막혀요.</p>
             <label className="field">초대 코드 6자리<input value={code} maxLength={6} autoCapitalize="characters" onChange={(e) => setCode(e.target.value.toUpperCase())} /></label>
           </>
