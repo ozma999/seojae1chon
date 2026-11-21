@@ -16,6 +16,8 @@ export const toRoomBook = (e: LibraryEntry): RoomBook => ({
 
 interface Ctx {
   mode: Repo['mode'];
+  /** 서재산책·초대 등 화면별 호출용 */
+  repo: Repo;
   ready: boolean;
   error: string | null;
   profile: Profile | null;
@@ -80,7 +82,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
   const roomBooks = useMemo(() => entries.map(toRoomBook), [entries]);
   const value: Ctx = {
-    mode: repo.mode, ready, error, profile, entries, tod, setTod, toast, say, reload,
+    mode: repo.mode, repo, ready, error, profile, entries, tod, setTod, toast, say, reload,
     roomBooks,
     bragSlots: useMemo(() => (art ? art.levels[pickLevel(art, roomBooks).li].brag.reduce((a, b) => a + b[2], 0) : 3), [art, roomBooks]),
     lookup: repo.lookup,

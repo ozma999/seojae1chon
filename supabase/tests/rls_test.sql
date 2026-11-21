@@ -49,6 +49,14 @@ do $$ begin assert (select count(*) from public.invite_codes) = 0, 'A의 초대 
 insert into public.visits (host) values ('00000000-0000-0000-0000-00000000000a');
 select pg_temp.expect_fail($$insert into public.visits (host) values ('00000000-0000-0000-0000-00000000000b')$$, '내 서재 방문');
 do $$ begin assert public.holders('9788936434120') = 1; end $$;
+-- 서재산책 목록: 나 먼저, 책 수 집계
+do $$ declare r record; begin
+  select * into r from public.room_list() limit 1;
+  assert r.is_me and r.books = 0, '첫 줄은 나(B, 책 0권)';
+  assert (select books from public.room_list() where not is_me) = 2, 'A의 책 2권';
+end $$;
+-- 같은 날 두 번 방문은 무시(ON CONFLICT DO NOTHING)
+insert into public.visits (host) values ('00000000-0000-0000-0000-00000000000a') on conflict do nothing;
 
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
 do $$ begin
@@ -68,6 +76,7 @@ reset role; set role anon; select pg_temp.as_user(null);
 select pg_temp.expect_fail($$select count(*) from public.user_books$$, 'anon 서재 읽기');
 select pg_temp.expect_fail($$select count(*) from public.profiles$$, 'anon 프로필 읽기');
 select pg_temp.expect_fail($$select public.create_invite()$$, 'anon 초대 코드 만들기');
+select pg_temp.expect_fail($$select * from public.room_list()$$, 'anon 서재 목록');
 do $$ begin assert public.check_invite('ZZZZZZ') = false; end $$;
 reset role;
 \o

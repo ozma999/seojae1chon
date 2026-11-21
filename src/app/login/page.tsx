@@ -1,6 +1,6 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { isLive } from '@/lib/supabase/env';
 import { supabaseBrowser } from '@/lib/supabase/client';
 import { demoReset } from '@/lib/data/demo';
@@ -8,10 +8,14 @@ import { passwordRules, RULE_TEXT } from '@/lib/auth/password';
 
 
 export default function LoginPage() {
+  return <Suspense><Login /></Suspense>;
+}
+function Login() {
   const router = useRouter();
   const live = isLive();
-  const [mode, setMode] = useState<'in' | 'up' | 'reset'>('in');
-  const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [code, setCode] = useState('');
+  const invited = (useSearchParams().get('code') ?? '').toUpperCase().slice(0, 6);
+  const [mode, setMode] = useState<'in' | 'up' | 'reset'>(invited ? 'up' : 'in');
+  const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [code, setCode] = useState(invited);
   const [msg, setMsg] = useState<string | null>(null), [busy, setBusy] = useState(false);
   const rules = passwordRules(email, pw, pw2);
   const okUp = Object.values(rules).every(Boolean) && /^[A-Za-z0-9]{6}$/.test(code) && email.includes('@');

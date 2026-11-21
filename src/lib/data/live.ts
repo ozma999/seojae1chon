@@ -4,7 +4,7 @@ import type { BookInfo } from '../books/nl';
 import type { ItemId } from '../room/types';
 import { ENTRY_SELECT, rowToEntry, type Row } from './live-shared';
 import { supabaseBrowser } from '../supabase/client';
-import type { LibraryEntry, Repo } from './types';
+import type { InviteCode, LibraryEntry, Profile, Repo, RoomSummary } from './types';
 
 export function liveRepo(): Repo {
   const sb = supabaseBrowser();
@@ -13,20 +13,50 @@ export function liveRepo(): Repo {
     if (!data.user) throw new Error('로그인이 필요해요');
     return data.user.id;
   };
+  async function loadUser(id: string): Promise<{ profile: Profile; entries: LibraryEntry[] }> {
+    const [p, e] = await Promise.all([
+      sb.from('profiles').select('*').eq('id', id).single(),
+      sb.from('user_books').select(ENTRY_SELECT).eq('user_id', id).order('created_at'),
+    ]);
+    if (p.error) throw new Error(p.error.message);
+    if (e.error) throw new Error(e.error.message);
+    return {
+      profile: { id, roomName: p.data.room_name, hair: p.data.hair, outfit: p.data.outfit, itemsOff: p.data.items_off as ItemId[] },
+      entries: (e.data as unknown as Row[]).map(rowToEntry),
+    };
+  }
   return {
     mode: 'live',
-    async load() {
-      const id = await uid();
-      const [p, e] = await Promise.all([
-        sb.from('profiles').select('*').eq('id', id).single(),
-        sb.from('user_books').select(ENTRY_SELECT).eq('user_id', id).order('created_at'),
-      ]);
-      if (p.error) throw p.error;
-      if (e.error) throw e.error;
-      return {
-        profile: { id, roomName: p.data.room_name, hair: p.data.hair, outfit: p.data.outfit, itemsOff: p.data.items_off as ItemId[] },
-        entries: (e.data as unknown as Row[]).map(rowToEntry),
-      };
+    async load() { return loadUser(await uid()); },
+    async loadRoom(id) { return loadUser(id); },
+    async listRooms() {
+      const { data, error } = await sb.rpc('room_list');
+      if (error) throw new Error(error.message);
+      return (data as { id: string; room_name: string; hair: number; outfit: number; books: number; brag: number; last_added: string | null; is_me: boolean }[])
+        .map((r): RoomSummary => ({ id: r.id, roomName: r.room_name, hair: r.hair, outfit: r.outfit, books: r.books, brag: r.brag,
+          lastAdded: r.last_added ? Date.parse(r.last_added) : null, isMe: r.is_me }));
+    },
+    async visit(id) {
+      const me = await uid();
+      if (me === id) return;
+      const { error } = await sb.from('visits').insert({ host: id });
+      if (error && error.code !== '23505') throw new Error(error.message);   // 오늘 이미 방문했으면 무시
+    },
+    async todayVisits() {
+      const { data, error } = await sb.rpc('today_visits');
+      if (error) throw new Error(error.message);
+      return data as number;
+    },
+    async myInvites() {
+      const { data, error } = await sb.from('invite_codes').select('code,uses,max_uses,expires_at').eq('created_by', await uid()).order('created_at', { ascending: false });
+      if (error) throw new Error(error.message);
+      return (data as { code: string; uses: number; max_uses: number; expires_at: string | null }[])
+        .map((r): InviteCode => ({ code: r.code, uses: r.uses, maxUses: r.max_uses, expiresAt: r.expires_at ? Date.parse(r.expires_at) : null }));
+    },
+    async createInvite() {
+      const { data, error } = await sb.rpc('create_invite');
+      if (error) throw new Error(error.message);
+      return data as string;
     },
     async lookup(q) {
       const r = await fetch(`/api/books/lookup?${new URLSearchParams(q.isbn ? { isbn: q.isbn } : { q: q.title ?? '' })}`);

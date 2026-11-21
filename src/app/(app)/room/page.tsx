@@ -1,4 +1,5 @@
 'use client';
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { RoomCanvas } from '@/components/RoomCanvas';
 import { BookSheet } from '@/components/BookSheet';
@@ -14,7 +15,9 @@ import type { LibraryEntry } from '@/lib/data/types';
 const TODS: Tod[] = ['새벽', '낮', '노을', '밤'];
 
 export default function RoomPage() {
-  const { ready, profile, entries, roomBooks, tod, setTod, mode, reload, say } = useLibrary();
+  const { ready, profile, entries, roomBooks, tod, setTod, mode, reload, say, repo } = useLibrary();
+  const [visits, setVisits] = useState<number | null>(null);
+  useEffect(() => { repo.todayVisits().then(setVisits, () => {}); }, [repo]);
   const [world, setWorld] = useState<World | null>(null);
   const [art, setArt] = useState<{ itemdefs: { id: string; th: number; name: string }[]; themes: Record<string, { name: string }> } | null>(null);
   const [pick, setPick] = useState<LibraryEntry | null>(null);
@@ -48,6 +51,10 @@ export default function RoomPage() {
         <h1 className="logo">{profile!.roomName}</h1>
         {world && <span className="lv">Lv.{world.li + 1} {world.level.name}</span>}
       </header>
+      <div className="subbar">
+        <span className="muted small">오늘 방문 <b className="today">{visits ?? '-'}</b></span>
+        <Link href="/walk" className="chip">서재산책 ›</Link>
+      </div>
       <RoomCanvas state={state} onWorld={(w, r) => { setWorld(w); setArt(r.art); }}
         onPick={(h) => { if (h.book) setPick(entries.find((e) => e.id === h.book!.id) ?? null); else if (h.empty) say('책을 눌러 \'자랑 책장에 꽂기\'를 고르면 여기에 표지가 보여요'); }} />
       <section className="pad">

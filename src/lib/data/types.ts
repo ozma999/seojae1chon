@@ -21,6 +21,17 @@ export interface Profile {
   outfit: number;
   itemsOff: ItemId[];
 }
+export interface RoomSummary {
+  id: string;
+  roomName: string;
+  hair: number;
+  outfit: number;
+  books: number;
+  brag: number;
+  lastAdded: number | null;
+  isMe: boolean;
+}
+export interface InviteCode { code: string; uses: number; maxUses: number; expiresAt: number | null }
 export interface Repo {
   mode: 'demo' | 'live';
   load(): Promise<{ profile: Profile; entries: LibraryEntry[] }>;
@@ -29,4 +40,12 @@ export interface Repo {
   remove(id: string): Promise<void>;
   updateEntry(id: string, patch: { userGenre?: Genre | null; comment?: string | null; bragAt?: number | null; bragText?: string | null }): Promise<void>;
   updateProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<void>;
+  // 서재산책
+  listRooms(): Promise<RoomSummary[]>;
+  loadRoom(id: string): Promise<{ profile: Profile; entries: LibraryEntry[] }>;
+  visit(id: string): Promise<void>;
+  todayVisits(): Promise<number>;
+  // 초대
+  myInvites(): Promise<InviteCode[]>;
+  createInvite(): Promise<string>;
 }

@@ -1,11 +1,11 @@
 'use client';
 // 데모 모드: Supabase 없이 이 브라우저(localStorage)에만 저장한다
 import type { BookInfo } from '../books/nl';
-import type { AddMethod, LibraryEntry, Profile, Repo } from './types';
+import type { AddMethod, InviteCode, LibraryEntry, Profile, Repo, RoomSummary } from './types';
 import catalog from './demo-catalog.json';
 
 const KEY = 'seojae-demo-v1';
-interface Saved { profile: Profile; entries: LibraryEntry[] }
+interface Saved { profile: Profile; entries: LibraryEntry[]; invites?: InviteCode[] }
 type CatalogBook = BookInfo & { own: boolean; brag: boolean; comment: string | null };
 export const DEMO_CATALOG = catalog as CatalogBook[];
 
@@ -26,22 +26,40 @@ const write = (s: Saved) => localStorage.setItem(KEY, JSON.stringify(s));
 
 export function demoReset(empty: boolean) { write(seed(empty)); }
 
-/** 서재 단계를 보려고 넣는 가짜 책(쪽수·장르 무작위) */
-export function demoFill(n: number) {
-  const s = read() ?? seed(false);
-  const genres = ['lit', 'lit', 'sf', 'hum', 'manga'] as const;
-  let r = s.entries.length + 1;
+/** 가짜 책(쪽수·장르 무작위, seed가 같으면 같은 책) */
+function fakeBooks(n: number, start: number, seedN: number, genres: readonly LibraryEntry['genre'][] = ['lit', 'lit', 'sf', 'hum', 'manga']) {
+  let r = seedN;
   const rnd = () => ((r = (r * 16807) % 2147483647) / 2147483647);
+  const out: LibraryEntry[] = [];
   for (let i = 0; i < n; i++) {
-    const k = s.entries.length + 1;
-    s.entries.push(entryOf({
-      isbn: `demo-${k}`, title: `데모 도서 ${String(k).padStart(4, '0')}`, author: '데모 작가', publisher: null, pubDate: null,
+    const k = start + i;
+    out.push(entryOf({
+      isbn: `demo-${seedN}-${k}`, title: `데모 도서 ${String(k).padStart(4, '0')}`, author: '데모 작가', publisher: null, pubDate: null,
       pages: 120 + Math.floor(rnd() * 500), size: rnd() < 0.12 ? 'big' : 'mid', heightMm: null, hardcover: rnd() < 0.15,
       format: rnd() < 0.15 ? 'ebook' : 'paper', series: null, vol: null, setIsbn: null, coverUrl: null, addCode: null,
       genre: genres[Math.floor(rnd() * genres.length)], genreSource: 'default',
-    }, 'photo'));
+    }, 'photo', { id: `fake-${seedN}-${k}` }));
   }
+  return out;
+}
+/** 서재 단계를 보려고 넣는 가짜 책 */
+export function demoFill(n: number) {
+  const s = read() ?? seed(false);
+  s.entries.push(...fakeBooks(n, s.entries.length + 1, s.entries.length + 1).map((e) => ({ ...e, id: crypto.randomUUID() })));
   write(s);
+}
+
+// 데모 서재산책: 고정된 가짜 친구 두 명
+const FRIENDS = [
+  { id: 'demo-friend-1', roomName: '새벽서가', hair: 4, outfit: 4, n: 240, seed: 11, genres: ['lit', 'lit', 'hum'] as const, brag: 3 },
+  { id: 'demo-friend-2', roomName: '만화방 주인', hair: 6, outfit: 2, n: 820, seed: 23, genres: ['manga', 'manga', 'sf'] as const, brag: 5 },
+];
+function friendRoom(id: string) {
+  const f = FRIENDS.find((x) => x.id === id);
+  if (!f) throw new Error('없는 서재예요');
+  const entries = fakeBooks(f.n, 1, f.seed, f.genres);
+  entries.slice(0, f.brag).forEach((e, i) => { e.bragAt = 1 + i; e.bragText = i === 0 ? '제일 아끼는 책' : null; });
+  return { profile: { id: f.id, roomName: f.roomName, hair: f.hair, outfit: f.outfit, itemsOff: [] }, entries };
 }
 
 export function demoRepo(): Repo {
@@ -73,5 +91,25 @@ export function demoRepo(): Repo {
       });
     },
     async updateProfile(patch) { save((s) => Object.assign(s.profile, patch)); },
+    async listRooms() {
+      const s = get();
+      const me: RoomSummary = { id: 'demo', roomName: s.profile.roomName, hair: s.profile.hair, outfit: s.profile.outfit,
+        books: s.entries.length, brag: s.entries.filter((e) => e.bragAt !== null).length, lastAdded: null, isMe: true };
+      return [me, ...FRIENDS.map((f) => ({ id: f.id, roomName: f.roomName, hair: f.hair, outfit: f.outfit, books: f.n, brag: f.brag, lastAdded: null, isMe: false }))];
+    },
+    async loadRoom(id) { return id === 'demo' ? get() : friendRoom(id); },
+    async visit() {},
+    async todayVisits() { return 2; },
+    async myInvites() { return get().invites ?? []; },
+    async createInvite() {
+      const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      const code = Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => A[b % 32]).join('');
+      save((s) => {
+        s.invites = s.invites ?? [];
+        if (s.invites.filter((i) => i.uses < i.maxUses).length >= 5) throw new Error('사용하지 않은 초대 코드가 5개 있어요');
+        s.invites.unshift({ code, uses: 0, maxUses: 1, expiresAt: Date.now() + 30 * 864e5 });
+      });
+      return code;
+    },
   };
 }
