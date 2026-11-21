@@ -64,6 +64,7 @@ export default function AddPage() {
           ))}
         </ul>
       )}
+      <p className="muted small">도서 정보 제공: Google Books · 국립중앙도서관</p>
       <section className="card">
         <h2>책장 사진으로 한꺼번에</h2>
         <p className="muted small">책장을 한 칸씩 찍으면 책등을 읽어 한 번에 추가해요. 다음 단계에서 붙입니다.</p>

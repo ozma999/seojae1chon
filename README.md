@@ -5,7 +5,7 @@
 
 - Next.js 16(App Router) + TypeScript
 - Supabase: 로그인(이메일+비밀번호+초대 코드), Postgres(RLS), 서지 캐시
-- 국립중앙도서관 ISBN 서지정보 API(서버에서만 호출)
+- 도서 정보: 국립중앙도서관 ISBN 서지정보 API(키가 있을 때) → 구글 북스 API(서버에서만 호출, 결과는 DB에 캐시)
 - 방 그림: `art/`의 파이썬 렌더러가 만든 PNG를 `public/art/`에서 읽어 캔버스로 합성
 
 ## 바로 실행(데모 모드)
@@ -38,7 +38,7 @@ npm run typecheck && npm run lint && npm run build
    - 로그인 5회 실패 잠금은 Supabase 기본 기능이 아님 → Auth rate limit으로 시작하고, 필요하면 v1에서 추가
 4. 첫 초대 코드는 SQL로 만든다: `insert into invite_codes (code, max_uses) values ('ABC234', 10);`
    가입한 사용자는 앱에서 `create_invite()`로 자기 코드를 만들 수 있다(30일, 미사용 5개까지).
-5. `.env.local`에 값 넣기(`.env.example` 참고). `SUPABASE_SERVICE_ROLE_KEY`와 `NL_API_KEY`는 서버 전용.
+5. `.env.local`에 값 넣기(`.env.example` 참고). `SUPABASE_SERVICE_ROLE_KEY`, `GOOGLE_BOOKS_KEY`, `NL_API_KEY`는 서버 전용.
 
 ## 배포(Vercel)
 
