@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseServer, supabaseService } from '@/lib/supabase/server';
-import { bookToRow, lookupBooks } from '@/lib/books/store';
+import { bookToRow, lookupBooks, withPages } from '@/lib/books/store';
 import { ENTRY_SELECT } from '@/lib/data/live-shared';
 import { normalizeIsbn } from '@/lib/books/isbn';
 
@@ -15,14 +15,20 @@ export async function POST(req: NextRequest) {
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) return NextResponse.json({ error: '로그인이 필요해요' }, { status: 401 });
   if (!supabaseService()) return NextResponse.json({ error: '서버 설정(SUPABASE_SERVICE_ROLE_KEY)이 없어요' }, { status: 500 });
-  const { data: cached } = await sb.from('books').select('isbn').eq('isbn', isbn).maybeSingle();
+  const svc = supabaseService()!;
+  const { data: cached } = await sb.from('books').select('isbn,pages').eq('isbn', isbn).maybeSingle();
   if (!cached) {
     const { books } = await lookupBooks({ isbn });
     const b = books.find((x) => x.isbn === isbn);
-    if (!b) return NextResponse.json({ error: '국립중앙도서관에서 찾지 못한 책이에요' }, { status: 404 });
-    // 국립중앙도서관 결과는 lookupBooks가 이미 캐시에 넣지만, 키가 없을 때의 임시 목록도 여기서 저장한다
-    const { error: upErr } = await supabaseService()!.from('books').upsert(bookToRow(b), { onConflict: 'isbn' });
+    if (!b) return NextResponse.json({ error: '찾지 못한 책이에요' }, { status: 404 });
+    // 검색 결과는 lookupBooks가 캐시에 넣지만, 쪽수 보충·임시 목록 저장을 위해 여기서 한 번 더 저장한다
+    const { error: upErr } = await svc.from('books').upsert(bookToRow(await withPages(b)), { onConflict: 'isbn' });
     if (upErr) return NextResponse.json({ error: upErr.message }, { status: 500 });
+  } else if (!cached.pages) {
+    // 카카오 결과처럼 쪽수가 없으면 서재에 꽂을 때 구글에서 채운다(책등 두께)
+    const { data: row } = await svc.from('books').select('*').eq('isbn', isbn).single();
+    const filled = row ? await withPages({ isbn, pages: null, coverUrl: row.cover_url, genre: row.genre, genreSource: row.genre_source } as never) : null;
+    if (filled?.pages) await svc.from('books').update({ pages: filled.pages, cover_url: row.cover_url ?? filled.coverUrl }).eq('isbn', isbn);
   }
   const { data, error } = await sb.from('user_books')
     .insert({ isbn, method, format, verified: method === 'barcode' || method === 'photo' })

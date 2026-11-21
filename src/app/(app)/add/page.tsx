@@ -5,6 +5,7 @@ import type { BookInfo } from '@/lib/books/nl';
 import { normalizeIsbn } from '@/lib/books/isbn';
 import type { AddMethod } from '@/lib/data/types';
 import { GENRE_NAME } from '@/lib/room/logic';
+import { missingVols } from '@/lib/books/series';
 
 type Detector = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
 declare global { interface Window { BarcodeDetector?: new (o: { formats: string[] }) => Detector } }
@@ -87,13 +88,14 @@ export default function AddPage() {
         <h2>책장 사진으로 한꺼번에</h2>
         <p className="muted small">책장을 한 칸씩 찍으면 책등을 읽어 한 번에 추가해요. 다음 단계에서 붙입니다.</p>
       </section>
-      {series && <SeriesSheet book={series} method={method} onClose={() => setSeries(null)} onOne={() => { addOne(series); setSeries(null); }} />}
+      {series && <SeriesSheet book={series} method={method} onClose={() => setSeries(null)} onOne={() => { addOne(series); setSeries(null); }}
+        onSearch={(text) => { setSeries(null); setQ(text); }} />}
     </div>
   );
 }
 
 /** 시리즈 책을 고르면: 이 권만 / 전체 / 일부 */
-function SeriesSheet({ book, method, onClose, onOne }: { book: BookInfo; method: AddMethod; onClose: () => void; onOne: () => void }) {
+function SeriesSheet({ book, method, onClose, onOne, onSearch }: { book: BookInfo; method: AddMethod; onClose: () => void; onOne: () => void; onSearch: (text: string) => void }) {
   const { repo, add, entries, say } = useLibrary();
   const [vols, setVols] = useState<BookInfo[] | null>(null);
   const [mode, setMode] = useState<'ask' | 'pick'>('ask');
@@ -154,7 +156,17 @@ function SeriesSheet({ book, method, onClose, onOne }: { book: BookInfo; method:
                 </li>
               ))}
             </ul>
-            <p className="muted small">검색으로 찾은 {vols.length}권이에요. 빠진 권은 그 권을 직접 검색해 추가해 주세요.</p>
+            <p className="muted small">검색으로 찾은 {vols.length}권이에요.</p>
+            {missingVols(vols.map((b) => b.vol ?? 0).filter(Boolean)).length > 0 && (
+              <div className="gaps">
+                <p className="small">찾지 못한 권 · 누르면 그 권만 다시 검색해요(바코드로 찍어도 돼요)</p>
+                <div className="chiprow">
+                  {missingVols(vols.map((b) => b.vol ?? 0).filter(Boolean)).slice(0, 30).map((v) => (
+                    <button key={v} className="chip" onClick={() => onSearch(`${book.series} ${v}`)}>{v}권</button>
+                  ))}
+                </div>
+              </div>
+            )}
             <button className="btn primary" disabled={!pick.size} onClick={() => addMany(vols.filter((b) => pick.has(b.isbn)))}>선택한 {pick.size}권 추가</button>
           </>
         )}

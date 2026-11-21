@@ -21,6 +21,24 @@ export function parseSeries(title: string): { series: string; vol: number } | nu
   return { series, vol };
 }
 
+/**
+ * 시리즈 비교용 열쇠: 한글이 있으면 영문 병기·문장부호를 빼고 비교한다.
+ * "원피스 = ONE PIECE" · "원피스 ONE PIECE" · "원피스" → 같은 열쇠. "원피스 애장판"은 다른 시리즈로 남는다.
+ */
+export function seriesKey(s: string) {
+  const t = s.normalize('NFC').replace(/[(\[][^)\]]*[)\]]/g, ' ');
+  const ko = /[가-힣]/.test(t) ? t.replace(/[A-Za-z][A-Za-z0-9'’.&\s-]*/g, ' ') : t;
+  return norm(ko) || norm(t);
+}
+export const sameSeries = (a?: string | null, b?: string | null) => !!a && !!b && seriesKey(a) === seriesKey(b);
+
+/** 1~가장 큰 권 사이에 빠진 권 번호 */
+export function missingVols(vols: number[]) {
+  const have = new Set(vols), max = Math.max(0, ...vols), out: number[] = [];
+  for (let v = 1; v <= max; v++) if (!have.has(v)) out.push(v);
+  return out;
+}
+
 /** 시리즈·권 정보가 없으면 제목에서 채운다 */
 export function withSeries(b: BookInfo): BookInfo {
   if (b.series && b.vol) return b;
@@ -42,9 +60,10 @@ export function matchesQuery(b: BookInfo, q: string) {
  */
 export function sortResults(books: BookInfo[], q: string) {
   const nq = norm(q);
-  const key = (b: BookInfo) => norm(b.series ?? b.title);
+  // 묶음 열쇠: 시리즈면 느슨한 시리즈 열쇠(영문 병기 무시), 아니면 제목
+  const key = (b: BookInfo) => (b.series ? `s:${seriesKey(b.series)}` : `t:${norm(b.title)}`);
   const rank = (b: BookInfo) => {
-    const k = key(b), t = norm(b.title);
+    const k = b.series ? seriesKey(b.series) : norm(b.title), t = norm(b.title);
     if (k === nq || t === nq) return 0;
     if (k.startsWith(nq) || t.startsWith(nq)) return 1;
     if (k.includes(nq) || t.includes(nq)) return 2;
