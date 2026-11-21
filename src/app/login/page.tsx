@@ -1,0 +1,79 @@
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { isLive } from '@/lib/supabase/env';
+import { supabaseBrowser } from '@/lib/supabase/client';
+import { demoReset } from '@/lib/data/demo';
+import { passwordRules } from '@/lib/auth/password';
+
+const RULES: [keyof ReturnType<typeof passwordRules>, string][] = [
+  ['len', '8자 이상'], ['mix', '영문과 숫자를 함께'], ['mail', '이메일 아이디를 넣지 않기'], ['same', '비밀번호 확인과 같음'],
+];
+
+export default function LoginPage() {
+  const router = useRouter();
+  const live = isLive();
+  const [mode, setMode] = useState<'in' | 'up' | 'reset'>('in');
+  const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [code, setCode] = useState('');
+  const [msg, setMsg] = useState<string | null>(null), [busy, setBusy] = useState(false);
+  const rules = passwordRules(email, pw, pw2);
+  const okUp = Object.values(rules).every(Boolean) && /^[A-Za-z0-9]{6}$/.test(code) && email.includes('@');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!live) { demoReset(mode === 'up'); router.push('/room'); return; }
+    const sb = supabaseBrowser();
+    setBusy(true); setMsg(null);
+    try {
+      if (mode === 'in') {
+        const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+        if (error) throw new Error(error.message.includes('Invalid') ? '이메일이나 비밀번호가 맞지 않아요' : error.message);
+        router.push('/room'); router.refresh();
+      } else if (mode === 'up') {
+        const { data: valid } = await sb.rpc('check_invite', { p_code: code });
+        if (!valid) throw new Error('초대 코드가 맞지 않거나 이미 쓰였어요');
+        const { data, error } = await sb.auth.signUp({ email, password: pw, options: {
+          data: { invite_code: code.toUpperCase() }, emailRedirectTo: `${location.origin}/auth/callback?next=/room` } });
+        if (error) throw new Error(/pwned|leaked|weak/i.test(error.message) ? '이미 유출된 적 있는 비밀번호예요. 다른 비밀번호를 써 주세요' : error.message);
+        if (data.session) { router.push('/room'); router.refresh(); }
+        else setMsg('인증 메일을 보냈어요. 메일의 링크를 누르면 빈 서재가 열려요.');
+      } else {
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${location.origin}/auth/callback?next=/login/new-password` });
+        if (error) throw error;
+        setMsg('비밀번호 재설정 링크를 보냈어요(30분 동안 유효).');
+      }
+    } catch (err) { setMsg((err as Error).message); } finally { setBusy(false); }
+  };
+
+  return (
+    <main className="login">
+      <h1 className="logo big">서재일촌</h1>
+      <p className="muted">책이 쌓일수록 넓어지는 픽셀 서재</p>
+      {!live && <p className="demobar">데모 모드예요. Supabase를 연결하기 전에는 이 브라우저에만 저장돼요.</p>}
+      <div className="tabs" role="tablist">
+        <button role="tab" aria-selected={mode === 'in'} onClick={() => setMode('in')}>로그인</button>
+        <button role="tab" aria-selected={mode === 'up'} onClick={() => setMode('up')}>가입</button>
+      </div>
+      <form onSubmit={submit} className="stack">
+        <label className="field">이메일<input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required={live} /></label>
+        {mode !== 'reset' && (
+          <label className="field">비밀번호<input type="password" autoComplete={mode === 'up' ? 'new-password' : 'current-password'} value={pw} onChange={(e) => setPw(e.target.value)} required={live} /></label>
+        )}
+        {mode === 'up' && (
+          <>
+            <label className="field">비밀번호 확인<input type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></label>
+            <ul className="rules">{RULES.map(([k, t]) => <li key={k} className={rules[k] ? 'ok' : ''}>{t}</li>)}</ul>
+            <p className="muted small">다른 사이트에서 쓰지 않는 새 비밀번호를 써 주세요. 이미 유출된 비밀번호는 가입이 막혀요.</p>
+            <label className="field">초대 코드 6자리<input value={code} maxLength={6} autoCapitalize="characters" onChange={(e) => setCode(e.target.value.toUpperCase())} /></label>
+          </>
+        )}
+        <button className="btn primary" disabled={busy || (live && mode === 'up' && !okUp)}>
+          {mode === 'in' ? '로그인' : mode === 'up' ? '가입하고 빈 방 받기' : '재설정 링크 보내기'}
+        </button>
+        {msg && <p className="note" role="status">{msg}</p>}
+      </form>
+      {mode === 'in' && <button className="link" onClick={() => setMode('reset')}>비밀번호를 잊었어요</button>}
+      {!live && <button className="btn ghost" onClick={() => { demoReset(false); router.push('/room'); }}>샘플 서재 둘러보기</button>}
+    </main>
+  );
+}
