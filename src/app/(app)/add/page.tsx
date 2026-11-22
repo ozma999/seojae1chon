@@ -21,10 +21,12 @@ export default function AddPage() {
   const [series, setSeries] = useState<BookInfo | null>(null);
   const canScan = useSyncExternalStore(() => () => {}, canUseCamera, () => false);
   const seq = useRef(0);
+  const lastQuery = useRef('');   // 바코드·찾기 버튼으로 이미 검색한 말은 자동완성이 다시 부르지 않게
 
   /** 검색(가장 마지막 요청의 결과만 보여준다) */
   const find = async (text: string, m: AddMethod, quiet = false) => {
     const t = text.trim(), isbn = normalizeIsbn(t), my = ++seq.current;
+    lastQuery.current = t;
     if (!t) { setResults(null); return; }
     if (!isbn && looksLikeIsbn(t)) { if (!quiet) say('ISBN 숫자가 맞지 않아요. 책 뒷면의 13자리를 다시 확인해 주세요'); return; }
     setBusy(true);
@@ -40,7 +42,7 @@ export default function AddPage() {
   // 자동완성: 입력을 멈추고 0.35초 뒤 검색(제목 2글자 이상 또는 ISBN 13자리)
   useEffect(() => {
     const t = q.trim();
-    if (!(normalizeIsbn(t) || (t.length >= 2 && !looksLikeIsbn(t)))) return;
+    if (!(normalizeIsbn(t) || (t.length >= 2 && !looksLikeIsbn(t))) || t === lastQuery.current) return;
     const id = setTimeout(() => find(t, 'search', true), 350);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
