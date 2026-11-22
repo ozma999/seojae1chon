@@ -2,6 +2,7 @@
 import type { BookInfo } from './nl';
 import { normalizeIsbn } from './isbn';
 import { withSeries } from './series';
+import { guessGenre } from './genre';
 
 export interface KDoc {
   title?: string; contents?: string; isbn?: string; datetime?: string; authors?: string[]; publisher?: string;
@@ -16,12 +17,14 @@ export function normalizeKakao(d: KDoc): BookInfo | null {
   const isbn = parts.map((p) => normalizeIsbn(p)).find((x) => x && x.length === 13) ?? null;
   if (!title || !isbn) return null;
   const date = (d.datetime ?? '').slice(0, 10);
-  return withSeries({
+  const b = withSeries({
     isbn, title, author: d.authors?.length ? d.authors.join(', ') : null, publisher: d.publisher?.trim() || null,
     pubDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null, pages: null, size: 'mid', heightMm: null, hardcover: false,
     format: 'paper', series: null, vol: null, setIsbn: null, coverUrl: d.thumbnail || null, addCode: null,
-    genre: 'lit', genreSource: 'default',
+    genre: 'lit', genreSource: 'default', translators: d.translators?.length ? d.translators.join(', ') : null,
   });
+  const g = guessGenre(b);
+  return g ? { ...b, genre: g, genreSource: 'guess' } : b;
 }
 
 export const KAKAO_URL = 'https://dapi.kakao.com/v3/search/book';

@@ -6,7 +6,7 @@ import type { LibraryEntry } from '@/lib/data/types';
 import { GENRE_NAME, thicknessMm } from '@/lib/room/logic';
 import { drawCover } from '@/lib/room/render';
 import { defaultLook } from '@/lib/room/look';
-import { monthCount, seriesProgress, shelfTitle, towerInfo } from '@/lib/room/stats';
+import { monthCount, persona, seriesProgress, shelfTitle, towerInfo } from '@/lib/room/stats';
 import { useClock } from '@/hooks/useClock';
 import type { Genre } from '@/lib/room/types';
 
@@ -27,7 +27,8 @@ export default function ShelfPage() {
       <section className="card titlecard">
         {profile?.cohort === 'founding' && <span className="badge">태초가족</span>}
         <small className="muted">나의 칭호</small>
-        <p className="title">{shelfTitle(entries)}</p>
+        <p className="title">{shelfTitle(entries, now?.getTime())}</p>
+        <small className="muted">{(() => { const p = persona(entries, now?.getTime()); return p ? `${p.why} — 그래서 이 칭호예요` : entries.length < 10 ? '10권부터 모으는 방식에 따라 칭호가 달라져요' : '가장 많은 장르로 정한 칭호예요'; })()}</small>
       </section>
       <div className="stats">
         <div><b>{entries.length.toLocaleString()}</b><small>권</small></div>

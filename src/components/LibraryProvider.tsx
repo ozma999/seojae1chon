@@ -1,5 +1,6 @@
 'use client';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { shelfTitle } from '@/lib/room/stats';
 import type { BookInfo } from '@/lib/books/nl';
 import type { AddMethod, LibraryEntry, Profile, Repo } from '@/lib/data/types';
 import { demoRepo } from '@/lib/data/demo';
@@ -89,6 +90,28 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     );
     return () => { alive = false; };
   }, [repo]);
+
+  // 장르를 모르는 책(카카오 결과 등)은 뒤에서 장르를 정해 달라고 한 번씩 부탁한다(규칙 → AI). 바뀌면 다시 읽는다
+  const tried = useRef(new Set<string>());
+  useEffect(() => {
+    if (repo.mode !== 'live' || !ready) return;
+    const isbns = entries.filter((e) => e.genreSource === 'default' && !e.userGenre && !e.id.startsWith('tmp') && !tried.current.has(e.isbn)).map((e) => e.isbn);
+    if (!isbns.length) return;
+    const t = setTimeout(() => {
+      isbns.forEach((i) => tried.current.add(i));
+      fetch('/api/books/classify', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ isbns }) })
+        .then((r) => r.json()).then((j: { updated?: number }) => { if (j.updated) reload(); }, () => {});
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [repo.mode, ready, entries, reload]);
+
+  // 칭호가 바뀌면 서재산책 목록에 보이도록 저장(조용히, 실패해도 무시 — 마이그레이션 전일 수 있다)
+  const title = useMemo(() => (ready && profile ? shelfTitle(entries.filter((e) => !e.id.startsWith('tmp'))) : null), [ready, profile, entries]);
+  useEffect(() => {
+    if (repo.mode !== 'live' || !title || !profile || profile.title === title) return;
+    const t = setTimeout(() => { repo.updateProfile({ title }).then(() => setProfile((p) => p && { ...p, title }), () => {}); }, 2000);
+    return () => clearTimeout(t);
+  }, [repo, title, profile]);
 
   const roomBooks = useMemo(() => entries.map(toRoomBook), [entries]);
   const value: Ctx = {

@@ -21,7 +21,8 @@ export function liveRepo(): Repo {
     if (p.error) throw new Error(p.error.message);
     if (e.error) throw new Error(e.error.message);
     return {
-      profile: { id, roomName: p.data.room_name, hair: p.data.hair, outfit: p.data.outfit, itemsOff: p.data.items_off as ItemId[], cohort: p.data.cohort ?? null },
+      profile: { id, roomName: p.data.room_name, hair: p.data.hair, outfit: p.data.outfit, itemsOff: p.data.items_off as ItemId[], cohort: p.data.cohort ?? null,
+        title: p.data.title ?? null, picks: p.data.picks ?? {} },
       entries: (e.data as unknown as Row[]).map(rowToEntry),
     };
   }
@@ -32,9 +33,9 @@ export function liveRepo(): Repo {
     async listRooms() {
       const { data, error } = await sb.rpc('room_list');
       if (error) throw new Error(error.message);
-      return (data as { id: string; room_name: string; hair: number; outfit: number; books: number; brag: number; last_added: string | null; is_me: boolean; cohort: string | null }[])
+      return (data as { id: string; room_name: string; hair: number; outfit: number; books: number; brag: number; last_added: string | null; is_me: boolean; cohort: string | null; title?: string | null }[])
         .map((r): RoomSummary => ({ id: r.id, roomName: r.room_name, hair: r.hair, outfit: r.outfit, books: r.books, brag: r.brag,
-          lastAdded: r.last_added ? Date.parse(r.last_added) : null, isMe: r.is_me, cohort: r.cohort }));
+          lastAdded: r.last_added ? Date.parse(r.last_added) : null, isMe: r.is_me, cohort: r.cohort, title: r.title ?? null }));
     },
     async visit(id) {
       const me = await uid();
@@ -98,6 +99,8 @@ export function liveRepo(): Repo {
       if (patch.hair !== undefined) row.hair = patch.hair;
       if (patch.outfit !== undefined) row.outfit = patch.outfit;
       if (patch.itemsOff !== undefined) row.items_off = patch.itemsOff;
+      if (patch.title !== undefined) row.title = patch.title;
+      if (patch.picks !== undefined) row.picks = patch.picks;
       const { error } = await sb.from('profiles').update(row).eq('id', await uid());
       if (error) throw error;
     },

@@ -12,16 +12,24 @@ import { autoTod, hm, sunTimes } from '@/lib/room/time';
 import { demoFill, demoReset } from '@/lib/data/demo';
 import { useClock } from '@/hooks/useClock';
 import type { LibraryEntry } from '@/lib/data/types';
+import { NameSheet } from '@/components/NameSheet';
+import { DEFAULT_ROOM_NAME } from '@/lib/room/names';
 
 const TODS: Tod[] = ['새벽', '낮', '노을', '밤'];
 
 export default function RoomPage() {
-  const { ready, profile, entries, roomBooks, tod, setTod, mode, reload, say, repo } = useLibrary();
+  const { ready, profile, entries, roomBooks, tod, setTod, mode, reload, say, repo, updateProfile } = useLibrary();
   const [visits, setVisits] = useState<number | null>(null);
   useEffect(() => { repo.todayVisits().then(setVisits, () => {}); }, [repo]);
   const [world, setWorld] = useState<World | null>(null);
   const [art, setArt] = useState<{ itemdefs: { id: string; th: number; name: string }[]; themes: Record<string, { name: string }> } | null>(null);
   const [pick, setPick] = useState<LibraryEntry | null>(null);
+  // 이름이 기본값이면 한 번만 묻는다(닫으면 이 기기에선 다시 안 물음)
+  const [askName, setAskName] = useState(false);
+  useEffect(() => {
+    if (mode === 'live' && profile?.roomName === DEFAULT_ROOM_NAME && !localStorage.getItem('askedName')) queueMicrotask(() => setAskName(true));
+  }, [mode, profile?.roomName]);
+  const closeName = () => { localStorage.setItem('askedName', '1'); setAskName(false); };
   const now = useClock();
   const autoT = now ? autoTod(now) : '낮';
   const state: RoomState | null = useMemo(() => profile && {
@@ -56,7 +64,7 @@ export default function RoomPage() {
         {world && <span className="lv">Lv.{world.li + 1} {world.level.name}</span>}
       </header>
       <div className="subbar">
-        <span className="muted small">오늘 방문 <b className="today">{visits ?? '-'}</b></span>
+        <span className="muted small">{profile!.title && <b className="ptitle">{profile!.title}</b>} 오늘 방문 <b className="today">{visits ?? '-'}</b></span>
         <Link href="/ilchon" className="chip">서재산책 ›</Link>
       </div>
       <RoomCanvas state={state} onWorld={(w, r) => { setWorld(w); setArt(r.art); }}
@@ -89,6 +97,7 @@ export default function RoomPage() {
           </div>
         )}
       </section>
+      {askName && <NameSheet onClose={closeName} onSave={(name) => updateProfile({ roomName: name }).then(() => { closeName(); say(`'${name}'(으)로 이름을 지었어요`); }, (e) => say((e as Error).message))} />}
       {pick && world && <BookSheet entry={pick} onClose={() => setPick(null)} />}
     </div>
   );

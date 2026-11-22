@@ -33,7 +33,7 @@ export default function IlchonPage() {
             <li key={r.id}>
               <Link href={`/walk/${r.id}`}>
                 <AvatarThumb hair={r.hair} outfit={r.outfit} scale={1} />
-                <span><b>{r.roomName}{r.cohort === 'founding' && <span className="badge sm">태초가족</span>}</b><small className="muted">책 {r.books.toLocaleString()}권 · 자랑 책장 {r.brag}권</small></span>
+                <span><b>{r.roomName}{r.cohort === 'founding' && <span className="badge sm">태초가족</span>}</b><small className="muted">{r.title && <>{r.title} · </>}책 {r.books.toLocaleString()}권 · 자랑 책장 {r.brag}권</small></span>
                 <span className="go" aria-hidden>›</span>
               </Link>
             </li>

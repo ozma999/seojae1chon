@@ -22,6 +22,10 @@ export interface Profile {
   itemsOff: ItemId[];
   /** 'founding' = 태초가족(FAMILY 코드로 가입). 사진 촬영 등록 등 먼저 여는 기능용 */
   cohort?: string | null;
+  /** 서재 성향 칭호(서재산책 목록에 보이도록 저장해 둔다) */
+  title?: string | null;
+  /** 꾸미기에서 고른 모양·색: { rug: 'b', 'rug.c': 2 } */
+  picks?: Record<string, string | number>;
 }
 export interface RoomSummary {
   id: string;
@@ -33,6 +37,7 @@ export interface RoomSummary {
   lastAdded: number | null;
   isMe: boolean;
   cohort?: string | null;
+  title?: string | null;
 }
 export interface InviteCode { code: string; uses: number; maxUses: number; expiresAt: number | null }
 export interface Repo {

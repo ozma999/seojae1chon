@@ -30,7 +30,9 @@ export interface BookInfo {
   addCode: string | null;
   genre: Genre;
   /** 'addcode' = 부가기호로 판정, 'subject' = SUBJECT(KDC 대분류), 'default' = 판단 근거 없음 */
-  genreSource: 'addcode' | 'subject' | 'default';
+  genreSource: 'addcode' | 'subject' | 'guess' | 'ai' | 'default';
+  /** 옮긴이(카카오). 서재 성향 칭호용 */
+  translators?: string | null;
 }
 
 const clean = (s?: string) => (s ?? '').replace(/\s+/g, ' ').trim() || null;

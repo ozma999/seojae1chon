@@ -109,6 +109,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .subbar { display: flex; align-items: center; justify-content: space-between; padding: 0 16px 8px; }
 .subbar .chip { margin: 0; text-decoration: none; display: inline-flex; align-items: center; }
 .today { color: var(--ink); font: 700 15px var(--pixel); }
+.ptitle { color: var(--pri); font-weight: 700; margin-right: 6px; }
 .back { font-size: 28px; text-decoration: none; padding: 0 10px 0 0; color: var(--muted); }
 .avatar { image-rendering: pixelated; flex: none; }
 .rooms { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }

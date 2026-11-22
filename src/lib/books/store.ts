@@ -12,6 +12,7 @@ export const bookToRow = (b: BookInfo) => ({
   isbn: b.isbn, title: b.title, author: b.author, publisher: b.publisher, pub_date: b.pubDate, pages: b.pages,
   height_mm: b.heightMm, size: b.size, hardcover: b.hardcover, format: b.format, series: b.series, vol: b.vol,
   set_isbn: b.setIsbn, cover_url: b.coverUrl, add_code: b.addCode, genre: b.genre, genre_source: b.genreSource,
+  translators: b.translators ?? null,
   fetched_at: new Date().toISOString(),
 });
 type BookRow = ReturnType<typeof bookToRow>;
@@ -19,7 +20,19 @@ const rowToBook = (r: BookRow): BookInfo => ({
   isbn: r.isbn, title: r.title, author: r.author, publisher: r.publisher, pubDate: r.pub_date, pages: r.pages,
   heightMm: r.height_mm, size: r.size, hardcover: r.hardcover, format: r.format, series: r.series, vol: r.vol,
   setIsbn: r.set_isbn, coverUrl: r.cover_url, addCode: r.add_code, genre: r.genre, genreSource: r.genre_source,
+  translators: r.translators ?? null,
 });
+/**
+ * 서지 캐시에 저장. DB에 새 열(translators)·새 장르 출처(guess/ai)가 아직 없으면(마이그레이션 전) 옛 형태로 다시 저장한다
+ */
+export async function upsertBooks(db: NonNullable<ReturnType<typeof supabaseService>>, rows: (BookRow & { source?: string })[]) {
+  if (!rows.length) return;
+  const { error } = await db.from('books').upsert(rows, { onConflict: 'isbn' });
+  if (error && (error.code === '42703' || error.code === '23514' || error.code === 'PGRST204')) {
+    await db.from('books').upsert(rows.map(({ translators, ...r }) => (void translators, {
+      ...r, genre_source: r.genre_source === 'guess' || r.genre_source === 'ai' ? 'subject' : r.genre_source })), { onConflict: 'isbn' });
+  }
+}
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const demoBooks = (catalog as (BookInfo & { own: boolean })[]).map(({ own, ...b }) => b as BookInfo);
 
@@ -82,7 +95,7 @@ export async function lookupBooks(q: { isbn?: string; title?: string }): Promise
     if (data) return { books: [rowToBook(data as BookRow)], source: 'cache' };
   }
   const save = async (books: BookInfo[], source: string) => {
-    if (db && books.length) await db.from('books').upsert(books.map((b) => ({ ...bookToRow(b), source })), { onConflict: 'isbn' });
+    if (db && books.length) await upsertBooks(db, books.map((b) => ({ ...bookToRow(b), source })));
     return { books, source };
   };
   let lastError: Error | null = null;
@@ -144,7 +157,7 @@ export async function seriesVolumes(series: string, publisher?: string | null): 
   }
   const vols = onePerVolume(same, publisher);
   const db = supabaseService();
-  if (db && vols.length) await db.from('books').upsert(vols.map((b) => ({ ...bookToRow(b), source: kkey() ? 'kakao' : 'google' })), { onConflict: 'isbn' });
+  if (db && vols.length) await upsertBooks(db, vols.map((b) => ({ ...bookToRow(b), source: kkey() ? 'kakao' : 'google' })));
   return vols;
 }
 const END = { isbn: '__end__' } as BookInfo;   // 카카오 마지막 쪽 표시(캐시에 함께 저장)

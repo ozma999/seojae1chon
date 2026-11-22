@@ -1,6 +1,6 @@
 import { after, NextResponse, type NextRequest } from 'next/server';
 import { supabaseServer, supabaseService } from '@/lib/supabase/server';
-import { bookToRow, lookupBooks, withPages } from '@/lib/books/store';
+import { bookToRow, lookupBooks, upsertBooks, withPages } from '@/lib/books/store';
 import { ENTRY_SELECT, rowToEntry, type Row } from '@/lib/data/live-shared';
 import { normalizeIsbn } from '@/lib/books/isbn';
 
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   for (const i of missing) {
     const { books } = await lookupBooks({ isbn: i }).catch(() => ({ books: [] }));
     const b = books.find((x) => x.isbn === i);
-    if (b) { await svc.from('books').upsert(bookToRow(b), { onConflict: 'isbn' }); cached.set(i, b.pages); }
+    if (b) { await upsertBooks(svc, [bookToRow(b)]); cached.set(i, b.pages); }
   }
   const ok = isbns.filter((i) => cached.has(i));
   if (!ok.length) return NextResponse.json({ error: '찾지 못한 책이에요' }, { status: 404 });
