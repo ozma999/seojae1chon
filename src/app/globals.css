@@ -79,7 +79,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); max-width: 520px; margin: 0 auto;
   background: var(--panel); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
 .tabbar a { display: grid; grid-template-rows: 24px 14px; justify-items: center; align-content: center; row-gap: 4px; min-height: 58px; padding: 6px 0;
-  font: 700 12px/14px var(--pixel); color: var(--muted); text-decoration: none; position: relative; }
+  font: 500 12px/14px var(--font); color: var(--muted); text-decoration: none; position: relative; }
+.tabbar a.on { font-weight: 700; }   /* 메뉴 글자는 기본 고딕(픽셀 글꼴은 12px에서 흐려지고 아이콘과 겹쳐 무거움) */
 .tabbar a.on::before { content: ""; position: absolute; top: 0; left: 50%; width: 40px; height: 3px; margin-left: -20px; background: var(--pri); }
 .navicon { display: block; width: 24px; height: 24px; }
 .tabbar a.on { color: var(--pri); }
