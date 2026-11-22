@@ -34,7 +34,8 @@ npm run typecheck && npm run lint && npm run build
    - Confirm email: 지인 테스트 동안은 끔(기본 메일 발송은 팀원 주소로만, 시간당 몇 통). 메일 발송 서비스(SMTP) 연결 뒤 다시 켜기
    - 유출 비밀번호 차단(Leaked password protection) 켜기. 요금제에 따라 제공 여부가 다를 수 있으니 확인
    - URL Configuration: Site URL과 Redirect URL에 `https://<도메인>/auth/callback` 추가
-   - 이메일 템플릿(인증·비밀번호 재설정)을 한국어로 바꾸고, 재설정 링크 유효 시간은 30분 권장
+   - 이메일 템플릿(인증·비밀번호 재설정): `supabase/templates/`의 한국어 HTML을 붙여 넣기. 재설정 링크 유효 시간 30분
+   - 메일 발송(SMTP): 기본 메일은 팀원 주소로만 가므로, 지인 테스트 전 Gmail SMTP(앱 비밀번호) 또는 Resend(자기 도메인) 연결
    - 로그인 5회 실패 잠금은 Supabase 기본 기능이 아님 → Auth rate limit으로 시작하고, 필요하면 v1에서 추가
 4. 첫 초대 코드는 SQL로 만든다: `insert into invite_codes (code, max_uses) values ('ABC234', 10);`
    가입한 사용자는 앱에서 `create_invite()`로 자기 코드를 만들 수 있다(30일, 미사용 5개까지).
