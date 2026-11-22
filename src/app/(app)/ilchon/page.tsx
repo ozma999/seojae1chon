@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useLibrary } from '@/components/LibraryProvider';
 import { AvatarThumb } from '@/components/AvatarThumb';
+import { ShareCards } from '@/components/ShareCards';
 import type { InviteCode, RoomSummary } from '@/lib/data/types';
 import { useClock } from '@/hooks/useClock';
 
@@ -41,10 +42,7 @@ export default function IlchonPage() {
         {rooms && !friends.length && <p className="muted small">아직 일촌이 없어요. 아래에서 초대 코드를 보내 일촌을 맺어 보세요.</p>}
       </section>
       <Invites />
-      <section className="card">
-        <h2>공유 카드</h2>
-        <p className="muted small">내 서재를 카드 이미지로 저장해 자랑해요(보유량 · 자랑 책장 · 컨셉 · 인테리어). 다음 단계에서 붙입니다.</p>
-      </section>
+      <ShareCards />
     </div>
   );
 }
