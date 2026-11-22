@@ -18,14 +18,16 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  const { data } = await supabase.auth.getUser();
+  // getClaims: 로그인 토큰 서명만 확인(매 화면 이동마다 인증 서버를 부르지 않아 빠르다). 만료가 가까우면 쿠키를 갱신한다
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims?.sub;
   const path = request.nextUrl.pathname;
-  if (data.user && path === '/') {   // 로그인한 사람은 첫 화면 대신 내 서재
+  if (user && path === '/') {   // 로그인한 사람은 첫 화면 대신 내 서재
     const to = request.nextUrl.clone();
     to.pathname = '/room';
     return NextResponse.redirect(to);
   }
-  if (!data.user && path !== '/' && !PUBLIC.some((p) => path.startsWith(p)) && !path.startsWith('/api/books/')) {
+  if (!user && path !== '/' && !PUBLIC.some((p) => path.startsWith(p)) && !path.startsWith('/api/books/')) {
     const to = request.nextUrl.clone();
     to.pathname = '/';
     return NextResponse.redirect(to);

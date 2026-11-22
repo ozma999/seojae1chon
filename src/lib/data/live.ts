@@ -75,6 +75,13 @@ export function liveRepo(): Repo {
       if (!r.ok) throw new Error(j.error ?? '추가 실패');
       return j.entry as LibraryEntry;
     },
+    async addMany(infos, { method }) {
+      const r = await fetch('/api/library', { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ isbns: infos.map((b) => b.isbn), method }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error ?? '추가 실패');
+      return j.entries as LibraryEntry[];
+    },
     async remove(id) { const { error } = await sb.from('user_books').delete().eq('id', id); if (error) throw error; },
     async updateEntry(id, patch) {
       const row: Record<string, unknown> = {};

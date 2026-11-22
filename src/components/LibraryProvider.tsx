@@ -32,6 +32,7 @@ interface Ctx {
   reload: () => Promise<void>;
   lookup: Repo['lookup'];
   add: (b: BookInfo, method: AddMethod, format?: 'paper' | 'ebook') => Promise<LibraryEntry>;
+  addMany: (books: BookInfo[], method: AddMethod) => Promise<LibraryEntry[]>;
   remove: (id: string) => Promise<void>;
   updateEntry: Repo['updateEntry'];
   updateProfile: Repo['updateProfile'];
@@ -90,6 +91,11 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
       const e = await repo.add(b, { method, format });
       setEntries((x) => [...x, e]);
       return e;
+    },
+    addMany: async (books, method) => {
+      const es = await repo.addMany(books, { method });
+      setEntries((x) => [...x, ...es.filter((e) => !x.some((y) => y.id === e.id))]);
+      return es;
     },
     remove: async (id) => { await repo.remove(id); setEntries((x) => x.filter((e) => e.id !== id)); },
     updateEntry: async (id, patch) => {

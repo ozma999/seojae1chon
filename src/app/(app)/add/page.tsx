@@ -20,6 +20,7 @@ export default function AddPage() {
   const [method, setMethod] = useState<AddMethod>('search');
   const [scan, setScan] = useState(false);
   const [series, setSeries] = useState<BookInfo | null>(null);
+  const [pending, setPending] = useState<Set<string>>(new Set());
   const canScan = useSyncExternalStore(() => () => {}, () => !!window.BarcodeDetector && !!navigator.mediaDevices, () => false);
   const seq = useRef(0);
 
@@ -49,7 +50,9 @@ export default function AddPage() {
 
   const owned = (b: BookInfo) => entries.some((e) => e.isbn === b.isbn && e.format === b.format);
   const addOne = async (b: BookInfo) => {
+    setPending((s) => new Set(s).add(b.isbn));
     try { await add(b, method); say(`'${b.title}'을(를) 서재에 꽂았어요`); } catch (e) { say((e as Error).message); }
+    finally { setPending((s) => { const n = new Set(s); n.delete(b.isbn); return n; }); }
   };
 
   return (
@@ -77,7 +80,10 @@ export default function AddPage() {
                 <span className="muted small">{b.pages ? `${b.pages}쪽` : '쪽수 모름'} · {b.format === 'ebook' ? '전자책' : '종이책'} · {GENRE_NAME[b.genre]}{b.genreSource === 'default' ? '(추정)' : ''}{b.series ? ` · ${b.series} 시리즈 ${b.vol}권` : ''}</span>
               </div>
               {owned(b) ? <span className="muted small">서재에 있음</span> : (
-                <button className="btn primary sm" onClick={() => (b.series ? setSeries(b) : addOne(b))}>추가</button>
+                <button className="btn primary sm" disabled={pending.has(b.isbn)} aria-busy={pending.has(b.isbn)}
+                  onClick={() => (b.series ? setSeries(b) : addOne(b))}>
+                  {pending.has(b.isbn) ? <><span className="spin" aria-hidden />꽂는 중</> : '추가'}
+                </button>
               )}
             </li>
           ))}
@@ -96,7 +102,7 @@ export default function AddPage() {
 
 /** 시리즈 책을 고르면: 이 권만 / 전체 / 일부 */
 function SeriesSheet({ book, method, onClose, onOne, onSearch }: { book: BookInfo; method: AddMethod; onClose: () => void; onOne: () => void; onSearch: (text: string) => void }) {
-  const { repo, add, entries, say } = useLibrary();
+  const { repo, addMany, entries, say } = useLibrary();
   const [vols, setVols] = useState<BookInfo[] | null>(null);
   const [mode, setMode] = useState<'ask' | 'pick'>('ask');
   const [pick, setPick] = useState<Set<string>>(new Set());
@@ -108,19 +114,17 @@ function SeriesSheet({ book, method, onClose, onOne, onSearch }: { book: BookInf
     setVols(list);
     return list;
   };
-  const addMany = async (list: BookInfo[]) => {
+  const addList = async (list: BookInfo[]) => {
     const todo = list.filter((b) => !has(b));
     if (!todo.length) { say('이미 모두 서재에 있어요'); onClose(); return; }
     setProgress({ done: 0, total: todo.length });
-    let ok = 0;
-    for (const b of todo) {
-      try { await add(b, method === 'barcode' ? 'search' : method); ok++; } catch { /* 이미 있는 권 등은 건너뜀 */ }
-      setProgress({ done: ok, total: todo.length });
-    }
-    say(`${book.series} ${ok}권을 서재에 꽂았어요`);
-    onClose();
+    try {
+      const added = await addMany(todo, method === 'barcode' ? 'search' : method);   // 한 번에
+      say(`${book.series} ${added.length}권을 서재에 꽂았어요`);
+      onClose();
+    } catch (e) { say((e as Error).message); setProgress(null); }
   };
-  const all = async () => { try { await addMany(await load()); } catch (e) { say((e as Error).message); } };
+  const all = async () => { try { await addList(await load()); } catch (e) { say((e as Error).message); } };
   const some = async () => {
     setMode('pick');
     try { const l = await load(); setPick(new Set(l.filter((b) => !has(b) && b.isbn === book.isbn).map((b) => b.isbn))); } catch (e) { say((e as Error).message); }
@@ -133,7 +137,7 @@ function SeriesSheet({ book, method, onClose, onOne, onSearch }: { book: BookInf
         <h3>&lsquo;{book.series}&rsquo; 시리즈예요</h3>
         <p className="muted small">{[book.author, book.publisher].filter(Boolean).join(' · ')}</p>
         {progress ? (
-          <div className="next"><span>서재에 꽂는 중 {progress.done} / {progress.total}</span><span className="prog"><i style={{ width: `${(progress.done / progress.total) * 100}%` }} /></span></div>
+          <p className="next"><span><span className="spin" aria-hidden />{progress.total}권을 서재에 꽂는 중…</span></p>
         ) : mode === 'ask' ? (
           <>
             <button className="btn primary" onClick={onOne}>{book.vol}권만 추가</button>
@@ -167,7 +171,7 @@ function SeriesSheet({ book, method, onClose, onOne, onSearch }: { book: BookInf
                 </div>
               </div>
             )}
-            <button className="btn primary" disabled={!pick.size} onClick={() => addMany(vols.filter((b) => pick.has(b.isbn)))}>선택한 {pick.size}권 추가</button>
+            <button className="btn primary" disabled={!pick.size} onClick={() => addList(vols.filter((b) => pick.has(b.isbn)))}>선택한 {pick.size}권 추가</button>
           </>
         )}
       </div>

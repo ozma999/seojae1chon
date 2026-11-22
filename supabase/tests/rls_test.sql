@@ -31,6 +31,13 @@ do $$ begin assert public.check_invite('abc234') = false, '다 쓴 코드'; end 
 insert into public.user_books (isbn, method, verified) values ('9788936434120', 'barcode', true);
 insert into public.user_books (isbn) values ('9788901234567');
 update public.user_books set brag_at = now(), brag_text = '최애' where isbn = '9788936434120';
+-- 여러 권 한 번에 꽂기: 이미 있는 책은 건너뛰고(ON CONFLICT DO NOTHING) 새 책만 돌려준다
+do $$ declare n int; begin
+  with ins as (insert into public.user_books (isbn) values ('9788936434120'), ('9788901234567')
+               on conflict (user_id, isbn, format) do nothing returning id)
+  select count(*) into n from ins;
+  assert n = 0, '둘 다 이미 있음';
+end $$;
 select pg_temp.expect_fail($$insert into public.books (isbn, title) values ('9780000000002', 'x')$$, '사용자가 서지 쓰기');
 select pg_temp.expect_fail($$insert into public.user_books (user_id, isbn) values ('00000000-0000-0000-0000-00000000000b', '9788936434120')$$, '남의 서재에 책 넣기');
 select pg_temp.expect_fail($$update public.user_books set verified = true$$, '실물 인증 위조');

@@ -86,6 +86,16 @@ export function demoRepo(): Repo {
       });
       return e;
     },
+    async addMany(infos, { method }) {
+      const out: LibraryEntry[] = [];
+      save((s) => {
+        for (const b of infos) {
+          if (s.entries.some((x) => x.isbn === b.isbn && x.format === b.format)) continue;
+          const e = entryOf(b, method); s.entries.push(e); out.push(e);
+        }
+      });
+      return out;
+    },
     async remove(id) { save((s) => { s.entries = s.entries.filter((e) => e.id !== id); }); },
     async updateEntry(id, patch) {
       save((s) => {
