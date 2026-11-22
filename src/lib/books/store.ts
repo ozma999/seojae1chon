@@ -97,8 +97,7 @@ export async function lookupBooks(q: { isbn?: string; title?: string }): Promise
   if (kkey()) {
     try {
       let books = isbn ? await kakaoPage({ isbn }) : await titleSearch(q.title ?? '');
-      if (!isbn) books = await refineTitle(books, q.title ?? '');
-      else books = await Promise.all(books.map(withPages));   // ISBN 한 권은 바로 쪽수까지
+      if (!isbn) books = await refineTitle(books, q.title ?? '');   // 쪽수는 서재에 꽂은 뒤 따로(후순위)
       if (books.length) return save(books, 'kakao');
     } catch (e) { lastError = e as Error; }
   }

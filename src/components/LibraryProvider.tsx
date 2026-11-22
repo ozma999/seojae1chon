@@ -9,6 +9,11 @@ import { defaultLook } from '@/lib/room/look';
 import type { ArtManifest, RoomBook, Tod } from '@/lib/room/types';
 import { pickLevel } from '@/lib/room/logic';
 
+/** 서버 저장 전 화면에 먼저 보여줄 항목 */
+const tempEntry = (b: BookInfo, method: AddMethod): LibraryEntry => ({
+  ...b, id: `tmp-${b.isbn}-${b.format}`, userGenre: null, verified: method === 'barcode' || method === 'photo', method,
+  comment: null, bragAt: null, bragText: null, look: null, addedAt: Date.now(),
+});
 export const toRoomBook = (e: LibraryEntry): RoomBook => ({
   id: e.id, title: e.title, pages: e.pages, hardcover: e.hardcover, size: e.size, format: e.format, genre: e.genre,
   series: e.series, vol: e.vol, look: e.look ?? defaultLook(e.isbn), bragAt: e.bragAt,
@@ -28,6 +33,8 @@ interface Ctx {
   bragSlots: number;
   setTod: (t: Tod | null) => void;
   toast: string | null;
+  /** 뒤에서 진행 중인 작업(시리즈 꽂기 등) */
+  jobs: { id: number; label: string }[];
   say: (msg: string) => void;
   reload: () => Promise<void>;
   lookup: Repo['lookup'];
@@ -52,6 +59,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [tod, setTod] = useState<Tod | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [jobs, setJobs] = useState<{ id: number; label: string }[]>([]);
+  const jobSeq = useRef(0);
   const [art, setArt] = useState<ArtManifest | null>(null);
   useEffect(() => { fetch('/art/manifest.json').then((r) => r.json()).then(setArt, () => {}); }, []);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -83,19 +92,40 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
   const roomBooks = useMemo(() => entries.map(toRoomBook), [entries]);
   const value: Ctx = {
-    mode: repo.mode, repo, ready, error, profile, entries, tod, setTod, toast, say, reload,
+    mode: repo.mode, repo, ready, jobs, error, profile, entries, tod, setTod, toast, say, reload,
     roomBooks,
     bragSlots: useMemo(() => (art ? art.levels[pickLevel(art, roomBooks).li].brag.reduce((a, b) => a + b[2], 0) : 3), [art, roomBooks]),
     lookup: repo.lookup,
+    // 화면에는 바로 꽂고(임시 항목), 서버 저장은 뒤에서. 실패하면 되돌리고 알린다
     add: async (b, method, format) => {
-      const e = await repo.add(b, { method, format });
-      setEntries((x) => [...x, e]);
-      return e;
+      const tmp = tempEntry({ ...b, format: format ?? b.format }, method);
+      setEntries((x) => [...x, tmp]);
+      try {
+        const e = await repo.add(b, { method, format });
+        setEntries((x) => x.map((y) => (y.id === tmp.id ? e : y)));
+        return e;
+      } catch (err) {
+        setEntries((x) => x.filter((y) => y.id !== tmp.id));
+        throw err;
+      }
     },
     addMany: async (books, method) => {
-      const es = await repo.addMany(books, { method });
-      setEntries((x) => [...x, ...es.filter((e) => !x.some((y) => y.id === e.id))]);
-      return es;
+      const temps = books.map((b) => tempEntry(b, method));
+      setEntries((x) => [...x, ...temps.filter((t) => !x.some((y) => y.isbn === t.isbn && y.format === t.format))]);
+      const id = ++jobSeq.current;
+      setJobs((j) => [...j, { id, label: `${books.length}권 꽂는 중` }]);
+      try {
+        const es = await repo.addMany(books, { method });
+        const tmpIds = new Set(temps.map((t) => t.id));
+        setEntries((x) => [...x.filter((y) => !tmpIds.has(y.id) && !es.some((e) => e.id === y.id)), ...es]);
+        return es;
+      } catch (err) {
+        const tmpIds = new Set(temps.map((t) => t.id));
+        setEntries((x) => x.filter((y) => !tmpIds.has(y.id)));
+        throw err;
+      } finally {
+        setJobs((j) => j.filter((x) => x.id !== id));
+      }
     },
     remove: async (id) => { await repo.remove(id); setEntries((x) => x.filter((e) => e.id !== id)); },
     updateEntry: async (id, patch) => {

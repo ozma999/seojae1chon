@@ -20,7 +20,6 @@ export default function AddPage() {
   const [method, setMethod] = useState<AddMethod>('search');
   const [scan, setScan] = useState(false);
   const [series, setSeries] = useState<BookInfo | null>(null);
-  const [pending, setPending] = useState<Set<string>>(new Set());
   const canScan = useSyncExternalStore(() => () => {}, () => !!window.BarcodeDetector && !!navigator.mediaDevices, () => false);
   const seq = useRef(0);
 
@@ -49,10 +48,10 @@ export default function AddPage() {
   }, [q]);
 
   const owned = (b: BookInfo) => entries.some((e) => e.isbn === b.isbn && e.format === b.format);
-  const addOne = async (b: BookInfo) => {
-    setPending((s) => new Set(s).add(b.isbn));
-    try { await add(b, method); say(`'${b.title}'을(를) 서재에 꽂았어요`); } catch (e) { say((e as Error).message); }
-    finally { setPending((s) => { const n = new Set(s); n.delete(b.isbn); return n; }); }
+  // 기다리지 않는다: 화면에는 바로 '서재에 있음', 저장은 뒤에서(실패하면 되돌리고 알림)
+  const addOne = (b: BookInfo) => {
+    say(`'${b.title}'을(를) 서재에 꽂았어요`);
+    add(b, method).catch((e: Error) => say(`'${b.title}' 저장 실패: ${e.message}`));
   };
 
   return (
@@ -79,11 +78,8 @@ export default function AddPage() {
                 <span className="muted small">{[b.author, b.publisher, b.pubDate].filter(Boolean).join(' · ')}</span>
                 <span className="muted small">{b.pages ? `${b.pages}쪽` : '쪽수 모름'} · {b.format === 'ebook' ? '전자책' : '종이책'} · {GENRE_NAME[b.genre]}{b.genreSource === 'default' ? '(추정)' : ''}{b.series ? ` · ${b.series} 시리즈 ${b.vol}권` : ''}</span>
               </div>
-              {owned(b) ? <span className="muted small">서재에 있음</span> : (
-                <button className="btn primary sm" disabled={pending.has(b.isbn)} aria-busy={pending.has(b.isbn)}
-                  onClick={() => (b.series ? setSeries(b) : addOne(b))}>
-                  {pending.has(b.isbn) ? <><span className="spin" aria-hidden />꽂는 중</> : '추가'}
-                </button>
+              {owned(b) ? <span className="muted small owned">✓ 서재에 있음</span> : (
+                <button className="btn primary sm" onClick={() => (b.series ? setSeries(b) : addOne(b))}>추가</button>
               )}
             </li>
           ))}
@@ -106,7 +102,6 @@ function SeriesSheet({ book, method, onClose, onOne, onSearch }: { book: BookInf
   const [vols, setVols] = useState<BookInfo[] | null>(null);
   const [mode, setMode] = useState<'ask' | 'pick'>('ask');
   const [pick, setPick] = useState<Set<string>>(new Set());
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const has = (b: BookInfo) => entries.some((e) => e.isbn === b.isbn);
   const load = async () => {
     const v = await repo.seriesVolumes(book.series!, book.publisher);
@@ -117,12 +112,10 @@ function SeriesSheet({ book, method, onClose, onOne, onSearch }: { book: BookInf
   const addList = async (list: BookInfo[]) => {
     const todo = list.filter((b) => !has(b));
     if (!todo.length) { say('이미 모두 서재에 있어요'); onClose(); return; }
-    setProgress({ done: 0, total: todo.length });
-    try {
-      const added = await addMany(todo, method === 'barcode' ? 'search' : method);   // 한 번에
-      say(`${book.series} ${added.length}권을 서재에 꽂았어요`);
-      onClose();
-    } catch (e) { say((e as Error).message); setProgress(null); }
+    // 창은 바로 닫고, 꽂기는 뒤에서(아래 작은 표시로 진행 중을 알림)
+    onClose();
+    addMany(todo, method === 'barcode' ? 'search' : method)
+      .then((added) => say(`${book.series} ${added.length}권을 서재에 꽂았어요`), (e: Error) => say(`저장 실패: ${e.message}`));
   };
   const all = async () => { try { await addList(await load()); } catch (e) { say((e as Error).message); } };
   const some = async () => {
@@ -131,14 +124,12 @@ function SeriesSheet({ book, method, onClose, onOne, onSearch }: { book: BookInf
   };
   const toggle = (isbn: string) => setPick((s) => { const n = new Set(s); if (n.has(isbn)) n.delete(isbn); else n.add(isbn); return n; });
   return (
-    <div className="sheetbg" onClick={progress ? undefined : onClose}>
+    <div className="sheetbg" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label={`${book.series} 시리즈 추가`} onClick={(e) => e.stopPropagation()}>
-        {!progress && <button className="x" onClick={onClose} aria-label="닫기">×</button>}
+        <button className="x" onClick={onClose} aria-label="닫기">×</button>
         <h3>&lsquo;{book.series}&rsquo; 시리즈예요</h3>
         <p className="muted small">{[book.author, book.publisher].filter(Boolean).join(' · ')}</p>
-        {progress ? (
-          <p className="next"><span><span className="spin" aria-hidden />{progress.total}권을 서재에 꽂는 중…</span></p>
-        ) : mode === 'ask' ? (
+        {mode === 'ask' ? (
           <>
             <button className="btn primary" onClick={onOne}>{book.vol}권만 추가</button>
             <button className="btn" onClick={all}>시리즈 전체 추가</button>
