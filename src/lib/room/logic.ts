@@ -80,6 +80,13 @@ export const itemUnlocked = (art: ArtManifest, id: ItemId, n: number) =>
   n >= (art.itemdefs.find((d) => d.id === id)?.th ?? Infinity);
 export const itemOn = (art: ArtManifest, id: ItemId, n: number, off: ItemId[]) =>
   itemUnlocked(art, id, n) && !off.includes(id);
+/** 고른 선택지 키(없거나 잘못되면 기본값) */
+export function pickedVar(art: ArtManifest, id: ItemId, picks?: Record<string, string | number>) {
+  const vs = art.itemdefs.find((d) => d.id === id)?.vars;
+  if (!vs?.length) return undefined;
+  const p = picks?.[id];
+  return vs.some((v) => v.key === p) ? (p as string) : vs[0].key;
+}
 export const nextItem = (art: ArtManifest, n: number) => art.itemdefs.find((d) => d.th > n) ?? null;
 
 export const HAIR_TH = [0, 0, 10, 30, 80, 120, 200, 300];

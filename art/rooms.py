@@ -172,6 +172,9 @@ ITEMS=[('desklamp',0,'기본 스탠드'),('rug',10,'러그'),('pile',30,'책 더
        ('chair',200,'1인 소파와 테이블'),('pendant',300,'펜던트 조명'),('valance',500,'창 커튼'),('ladder',700,'사다리'),
        ('globe',1000,'지구본'),('cushion',1500,'창가 쿠션')]
 
+# ---------- 꾸미기 선택지(variants.py): 같은 자리에 모양·색만 바꿔 그린다 ----------
+import variants
+rug,pot_plant,armchair,floorlamp=variants.rug,variants.pot_plant,variants.armchair,variants.floorlamp
 # ---------- levels: base structure + item placement ----------
 # items: id -> [(그리는 함수, 'wall'|'floor', 바닥 기준 y), ...]  물건 하나당 한 줄(앞뒤 판정 단위)
 def W_(f): return (f,'wall',0)
@@ -311,6 +314,9 @@ def item_layers(s,items):
     """같은 장면 위에서 표시색으로 덮은 뒤 그려, 그린 픽셀만 레이어로 뽑는다(배경과 같은 색이어도 빠지지 않음)."""
     keep=s.im.copy();out=[]
     for iid,_,_ in ITEMS:
+      vks=variants.keys(iid) if iid in variants.SHAPES else [None]
+      for vk in vks:
+        variants.VAR[iid]=vk
         for fn,kind,base in items.get(iid,[]):
             s.im.paste(SENT,(0,0,s.W,s.H));fn()
             rgba=s.im.convert('RGBA')
@@ -320,7 +326,8 @@ def item_layers(s,items):
             if bb:
                 cols={p for p,v in zip(s.im.get_flattened_data(),a) if v}
                 assert cols<=set(PAL),('팔레트 밖 색',iid,cols-set(PAL))
-                out.append(dict(id=iid,kind=kind,base=base,x=bb[0],y=bb[1],im=rgba.crop(bb)))
+                out.append(dict(id=iid,kind=kind,base=base,x=bb[0],y=bb[1],im=rgba.crop(bb),var=vk,default=vk==vks[0]))
+      variants.VAR.pop(iid,None)
     s.im.paste(keep);return out
 def glass_mask(s):
     a=[255 if p==SENT else 0 for p in s.im.get_flattened_data()]
@@ -351,6 +358,7 @@ def capacity(L,seed=1):
 def durl(im):
     b=io.BytesIO();im.save(b,'PNG',optimize=True);return 'data:image/png;base64,'+base64.b64encode(b.getvalue()).decode()
 def compose(bg,wins,lays,foot=None,avatar=None):
+    lays=[L for L in lays if L.get('default',True)]
     im=bg.convert('RGBA')
     for (xy,w) in wins: im.alpha_composite(w,xy)
     for L in lays:
@@ -372,7 +380,7 @@ def export(outdir='.'):
             if lv is None:
                 lays=item_layers(s,items)
                 lv=dict(name=NAMES[li],W=s.W,H=s.H,slots=s.slots,brag=s.bragslots,foot=list(foot),sidecap=s.books,
-                        items=[dict(id=L['id'],x=L['x'],y=L['y'],kind=L['kind'],base=L['base'],img=durl(L['im'])) for L in lays],
+                        items=[dict(id=L['id'],x=L['x'],y=L['y'],kind=L['kind'],base=L['base'],img=durl(L['im']),**({'var':L['var']} if L['var'] else {})) for L in lays],
                         bg={},win=[dict(x=b[0],y=b[1]) for b in s.glass])
                 for w in lv['win']: w['img']={}
             mask=glass_mask(s)
@@ -388,7 +396,12 @@ def export(outdir='.'):
             previews[(li,tk)]=(bg.copy(),day,foot)
             if tk=='attic': bg.save(os.path.join(outdir,f'empty_lv{li+1}.png'))
         lv['img']=lv['bg']['attic']   # 이전 버전 호환
-        lv['cap']=capacity(lv);lv['lights']=LIGHTS[li]
+        lv['cap']=capacity(lv)
+        lv['lights']=[]
+        for l in LIGHTS[li]:
+            if l['id'] in variants.LIGHT_SHIFT:
+                for sh,(dx,dy) in variants.LIGHT_SHIFT[l['id']].items(): lv['lights'].append(dict(l,x=l['x']+dx,y=l['y']+dy,shape=sh))
+            else: lv['lights'].append(l)
         levels.append(lv);lv['_lays']=lays
         print(NAMES[li],len(lays),'layers','capacity',lv['cap'])
     return levels,previews
@@ -401,6 +414,6 @@ if __name__=='__main__':
         bg,day,foot=prev[(li,'attic')]
         compose(bg,[],L['_lays']).convert('RGB').save(f'preview_lv{li+1}.png')
     for L in lv: L.pop('_lays')
-    d=json.load(open('art.json'));d['levels']=lv;d['itemdefs']=[dict(id=i,th=t,name=n) for i,t,n in ITEMS]
+    d=json.load(open('art.json'));d['levels']=lv;d['itemdefs']=[dict(id=i,th=t,name=n,**({'vars':variants.defs(i)} if i in variants.SHAPES else {})) for i,t,n in ITEMS]
     d['themes']={k:dict(name=v['name'],genre=v['genre'],scene=v['scene']) for k,v in THEMES.items()};d['tods']=TODS;d['pal']=[list(c) for c in PAL]
     open('art2.json','w').write(json.dumps(d,ensure_ascii=False));print(len(json.dumps(d))//1024,'KB')

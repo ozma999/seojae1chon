@@ -31,7 +31,7 @@ function FriendRoom() {
   }, [repo, id]);
   const books = useMemo(() => room?.entries.map(toRoomBook) ?? [], [room]);
   const state: RoomState | null = useMemo(() => room && now && {
-    books, itemsOff: room.profile.itemsOff, hair: room.profile.hair, outfit: room.profile.outfit, theme: null, tod: autoTod(now),
+    books, itemsOff: room.profile.itemsOff, hair: room.profile.hair, outfit: room.profile.outfit, picks: room.profile.picks, theme: null, tod: autoTod(now),
   }, [room, books, now]);
   if (err) return <p className="pad err">서재를 열지 못했어요: {err}</p>;
   if (!room || !state) return <p className="pad muted">서재를 여는 중…</p>;

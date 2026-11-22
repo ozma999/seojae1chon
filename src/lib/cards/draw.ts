@@ -60,7 +60,7 @@ export async function drawCard(d: CardData): Promise<HTMLCanvasElement> {
   c.font = PX(30); c.fillStyle = C.pri; c.textAlign = 'right'; c.fillText(CARD_NAMES[d.type], W - M, H - 92); c.textAlign = 'left';
 
   // 방 스냅샷(현재 단계, 지금 시간대)
-  const state: RoomState = { books: d.books, itemsOff: d.profile.itemsOff, hair: d.profile.hair, outfit: d.profile.outfit, theme: null, tod: d.tod };
+  const state: RoomState = { books: d.books, itemsOff: d.profile.itemsOff, hair: d.profile.hair, outfit: d.profile.outfit, theme: null, tod: d.tod, picks: d.profile.picks };
   const world = d.renderer.renderWorld(state);
   const roomAt = (x: number, y: number, w: number) => {
     const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = Math.round(world.level.H * (w / world.level.W));

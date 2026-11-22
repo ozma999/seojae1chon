@@ -22,7 +22,7 @@ export default function RoomPage() {
   const [visits, setVisits] = useState<number | null>(null);
   useEffect(() => { repo.todayVisits().then(setVisits, () => {}); }, [repo]);
   const [world, setWorld] = useState<World | null>(null);
-  const [art, setArt] = useState<{ itemdefs: { id: string; th: number; name: string }[]; themes: Record<string, { name: string }> } | null>(null);
+  const [art, setArt] = useState<{ itemdefs: { id: string; th: number; name: string; vars?: unknown[] }[]; themes: Record<string, { name: string }> } | null>(null);
   const [pick, setPick] = useState<LibraryEntry | null>(null);
   // 이름이 기본값이면 한 번만 묻는다(닫으면 이 기기에선 다시 안 물음)
   const [askName, setAskName] = useState(false);
@@ -33,7 +33,7 @@ export default function RoomPage() {
   const now = useClock();
   const autoT = now ? autoTod(now) : '낮';
   const state: RoomState | null = useMemo(() => profile && {
-    books: roomBooks, itemsOff: profile.itemsOff, hair: profile.hair, outfit: profile.outfit, theme: null, tod: tod ?? autoT,
+    books: roomBooks, itemsOff: profile.itemsOff, hair: profile.hair, outfit: profile.outfit, theme: null, tod: tod ?? autoT, picks: profile.picks,
   }, [profile, roomBooks, tod, autoT]);
 
   // 새 아이템·방 확장 알림
@@ -45,7 +45,7 @@ export default function RoomPage() {
       if (world.li > p.li) say(`방이 넓어졌어요 · Lv.${world.li + 1} ${world.level.name}`);
       else {
         const got = art.itemdefs.filter((d) => d.th <= n && d.th > p.n);
-        if (got.length) say(`새 아이템: ${got[got.length - 1].name}`);
+        if (got.length) { const g = got[got.length - 1]; say(`새 아이템: ${g.name}${'vars' in g && g.vars ? ' · 꾸미기에서 모양을 골라요' : ''}`); }
       }
     }
     prev.current = { n, li: world.li };

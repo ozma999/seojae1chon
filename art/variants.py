@@ -1,0 +1,148 @@
+# 꾸미기 선택지: 물건마다 '실루엣이 다른' 모양 3가지(+ 일부는 색 3가지).
+# rooms.py 가 VAR[아이템]에 고른 키('b1' = 모양 b, 색 1)를 넣고 그리면 그 모양으로 그려진다.
+import math
+from lib import K
+import scenes
+
+VAR = {}
+SHAPES = {
+    'rug':   [('a', '타원 러그'), ('b', '술 달린 사각 러그'), ('c', '꽃 러그')],
+    'plant': [('a', '무성한 화분'), ('b', '선인장'), ('c', '산세베리아')],
+    'chair': [('a', '1인 소파'), ('b', '높은 등받이 의자'), ('c', '빈백')],
+    'lamp':  [('a', '갓 스탠드'), ('b', '아치형 스탠드'), ('c', '삼각대 스탠드')],
+}
+COLORS = {
+    'rug':   [('파랑', 'blue', 'navy'), ('빨강', 'red', 'redD'), ('초록', 'green', 'greenD')],
+    'chair': [('청록', 'teal', 'green', 'greenD'), ('빨강', 'red', 'pink', 'redD'), ('노랑', 'yellow', 'cream', 'yellowD')],
+    'lamp':  [('크림', 'cream', 'wallD'), ('빨강', 'red', 'redD'), ('초록', 'green', 'greenD')],
+}
+def keys(iid):
+    """이 아이템의 선택지 키 목록. 첫 번째가 기본값"""
+    sh = [k for k, _ in SHAPES[iid]]
+    if iid not in COLORS: return sh
+    return [f'{k}{c}' for k in sh for c in range(len(COLORS[iid]))]
+def cur(iid):
+    k = VAR.get(iid) or keys(iid)[0]
+    return k[0], (int(k[1:]) if len(k) > 1 else 0)
+
+def _shadow(s, x0, x1, y):
+    for x in range(x0, x1):
+        if (x + y) % 2 == 0: s.P(x, y, 'O')
+
+# ---------- 러그 ----------
+def rug(s, cx, cy, rx, ry):
+    shp, ci = cur('rug'); _, c, cd = COLORS['rug'][ci]
+    if shp == 'a':
+        s.d.ellipse([cx-rx, cy-ry, cx+rx, cy+ry], fill=K['O']); s.d.ellipse([cx-rx+1, cy-ry+1, cx+rx-1, cy+ry-1], fill=K[c])
+        s.d.ellipse([cx-rx+7, cy-ry+3, cx+rx-7, cy+ry-3], fill=K[cd]); s.d.ellipse([cx-rx+11, cy-ry+5, cx+rx-11, cy+ry-5], fill=K[c])
+        for x in range(cx-rx+10, cx+rx-10, 6): s.P(x, cy, 'cream'); s.P(x+3, cy, 'cream')
+    elif shp == 'b':   # 원근 사다리꼴 + 테두리 + 마름모 무늬 + 앞뒤 술
+        t, b = cy - ry + 2, cy + ry - 2; ins = max(4, rx // 8)
+        s.poly([(cx-rx+ins, t), (cx+rx-ins, t), (cx+rx, b), (cx-rx, b)], c)
+        s.poly([(cx-rx+ins+5, t+2), (cx+rx-ins-5, t+2), (cx+rx-6, b-2), (cx-rx+6, b-2)], cd, ol=False)
+        s.poly([(cx-rx+ins+8, t+4), (cx+rx-ins-8, t+4), (cx+rx-10, b-4), (cx-rx+10, b-4)], c, ol=False)
+        for x in range(cx - rx + 16, cx + rx - 16, 10):
+            s.P(x, cy, 'cream'); s.P(x+1, cy-1, 'cream'); s.P(x+1, cy+1, 'cream'); s.P(x+2, cy, 'cream')
+        for x in range(cx - rx + 1, cx + rx, 3): s.R(x, b + 1, x + 1, b + 3, 'cream')
+        for x in range(cx - rx + ins + 1, cx + rx - ins, 3): s.R(x, t - 2, x + 1, t, 'cream')
+    else:              # 꽃 러그: 꽃잎 테두리의 둥근 러그(폭이 좁고 가장자리가 물결)
+        R = min(rx, ry * 3.2) * 0.62
+        def ring(scale, col, ol):
+            pts = []
+            for i in range(64):
+                a = i / 64 * 2 * math.pi
+                r = scale * (1 + 0.13 * abs(math.sin(4 * a)))
+                pts.append((round(cx + math.cos(a) * R * r), round(cy + math.sin(a) * ry * r)))
+            s.poly(pts, col, ol=ol)
+        ring(1.0, c, True); ring(0.72, 'cream', False); ring(0.58, cd, False); ring(0.3, 'yellow', False)
+
+# ---------- 화분 ----------
+def pot_plant(s, x, yb, big=False):
+    shp, _ = cur('plant')
+    if shp == 'a':
+        _shadow(s, x-3, x+(17 if big else 15), yb+1); scenes.plant(s, x, yb, big); return
+    if shp == 'b':     # 선인장: 기둥 + 팔 두 개, 작은 토분
+        _shadow(s, x-2, x+15, yb+1)
+        pw, ph = 12, 9
+        s.box(x, yb-ph, x+pw, yb, 'orange'); s.R(x-1, yb-ph-2, x+pw+1, yb-ph+1, 'redD'); s.R(x-1, yb-ph-3, x+pw+1, yb-ph-2, 'O')
+        m = x + pw // 2; h = 34 if big else 24; top = yb - ph - 3 - h
+        s.box(m-3, top, m+4, yb-ph-3, 'green'); s.R(m+2, top+2, m+3, yb-ph-3, 'greenD')
+        ay = top + h // 2; s.box(m-9, ay-8, m-4, ay-1, 'green'); s.box(m-9, ay-2, m-2, ay+3, 'green')
+        by = top + h // 3; s.box(m+4, by-6, m+9, by+1, 'green'); s.box(m+2, by, m+9, by+4, 'green')
+        for yy in range(top + 3, yb - ph - 4, 4): s.P(m - 1, yy, 'yellow'); s.P(m + 1, yy + 2, 'yellow')
+        s.R(m-1, top-2, m+2, top, 'pink'); s.P(m, top-3, 'pink')
+        return
+    # 산세베리아: 흰 원통 화분 + 뾰족한 잎 여러 장(키가 크다)
+    _shadow(s, x-2, x+16, yb+1)
+    pw, ph = 13, 11
+    s.box(x, yb-ph, x+pw, yb, 'white'); s.R(x+1, yb-ph+1, x+pw-1, yb-ph+3, 'wallS'); s.R(x+pw-3, yb-ph+1, x+pw-1, yb-1, 'wallS')
+    hs = [30, 38, 26, 34, 22] if big else [22, 28, 18, 25, 16]
+    for i, h in enumerate(hs):
+        bx = x + 1 + i * 2 + (i > 2); tip = (bx + 1 + (i - 2), yb - ph - h)
+        s.poly([(bx, yb - ph), (bx + 3, yb - ph), tip], 'green' if i % 2 == 0 else 'greenD')
+        s.line((bx, yb - ph - 1), tip, 'yellowD')
+
+# ---------- 의자 ----------
+def armchair(s, x, yb, col='teal', hi='green'):
+    from rooms import box3d
+    shp, ci = cur('chair'); _, c, h, d = COLORS['chair'][ci]
+    if shp == 'a':
+        _shadow(s, x-6, x+42, yb+1)
+        box3d(s, x+2, yb-34, 32, 18, 6, h, c, d); box3d(s, x-4, yb-16, 44, 16, 10, h, c, d)
+        box3d(s, x-7, yb-22, 9, 22, 8, h, c, d); box3d(s, x+34, yb-22, 9, 22, 8, h, c, d)
+        s.R(x+2, yb-14, x+32, yb-12, h); return
+    if shp == 'b':     # 윙백: 높은 등받이 + 날개 + 나무 다리
+        _shadow(s, x-4, x+40, yb+1)
+        box3d(s, x+3, yb-50, 30, 32, 5, h, c, d)
+        s.R(x+6, yb-46, x+30, yb-44, h)
+        box3d(s, x-2, yb-42, 7, 18, 6, h, c, d); box3d(s, x+31, yb-42, 7, 18, 6, h, c, d)
+        box3d(s, x-2, yb-20, 40, 10, 8, h, c, d)
+        for lx in (x, x+33): s.R(lx, yb-10, lx+3, yb, 'woodD'); s.P(lx, yb-1, 'O')
+        s.R(x+3, yb-12, x+33, yb-11, 'O'); return
+    # 빈백: 낮고 둥근 덩어리 + 눌린 자리
+    _shadow(s, x-6, x+42, yb+1)
+    pts = []
+    for i in range(40):
+        a = i / 40 * 2 * math.pi
+        rx, ry = 23, 15 + (3 if math.sin(a) < 0 else 0)
+        pts.append((round(x + 18 + math.cos(a) * rx * (1 + 0.06 * math.sin(3 * a))), round(yb - 15 + math.sin(a) * ry)))
+    s.poly(pts, c)
+    s.d.ellipse([x+6, yb-26, x+28, yb-16], fill=K[d]); s.d.ellipse([x+8, yb-25, x+28, yb-18], fill=K[c])
+    s.R(x+30, yb-28, x+34, yb-26, h); s.R(x+33, yb-26, x+37, yb-22, h); s.P(x+2, yb-12, h); s.R(x+4, yb-6, x+30, yb-5, d)
+
+# ---------- 스탠드 조명 ----------
+def floorlamp(s, x, ytop, yb):
+    shp, ci = cur('lamp'); _, c, d = COLORS['lamp'][ci]
+    if shp == 'a':
+        s.R(x, ytop+12, x+2, yb, 'O'); s.R(x-4, yb, x+6, yb+3, 'O')
+        s.poly([(x-8, ytop), (x+10, ytop), (x+6, ytop+12), (x-4, ytop+12)], c); s.R(x-6, ytop+1, x+8, ytop+2, d); return
+    if shp == 'b':     # 아치: 무거운 받침 → 위로 → 왼쪽으로 휘어 둥근 갓이 매달림
+        s.R(x-5, yb-2, x+8, yb+3, 'O'); s.R(x-4, yb-1, x+7, yb+1, 'greyD')
+        top = ytop - 6
+        s.R(x, top + 10, x+2, yb-1, 'O')
+        cx, r = x - 12, 13
+        for t in range(0, 91, 3):
+            a = math.radians(t); px_, py_ = cx + r * math.cos(a), top + 10 - r * math.sin(a)
+            s.R(round(px_), round(py_), round(px_) + 2, round(py_) + 2, 'O')
+        hx = cx - r
+        s.R(hx, top + 10, hx + 2, top + 16, 'O')
+        s.d.chord([hx - 8, top + 14, hx + 10, top + 32], 180, 360, fill=K['O'])
+        s.d.chord([hx - 7, top + 15, hx + 9, top + 31], 180, 360, fill=K[c])
+        s.R(hx - 7, top + 22, hx + 10, top + 24, 'O'); s.R(hx - 1, top + 24, hx + 3, top + 26, 'cream'); return
+    # 삼각대: 세 다리 + 원통 갓
+    ap = (x + 1, ytop + 16)
+    for fx_ in (x - 9, x + 11): s.line(ap, (fx_, yb + 2)); s.line((ap[0] + 1, ap[1]), (fx_ + 1, yb + 2), 'woodD')
+    s.line(ap, (x + 1, yb + 3), 'woodD')
+    s.R(x, ytop + 12, x + 3, ytop + 17, 'O')
+    s.box(x - 8, ytop - 2, x + 11, ytop + 13, c); s.R(x - 7, ytop + 10, x + 10, ytop + 12, d); s.R(x - 7, ytop - 1, x + 10, ytop, 'white')
+
+def defs(iid):
+    """앱에 줄 선택지 목록: [{key, name}] — 이름은 '모양 · 색'"""
+    out = []
+    for k in keys(iid):
+        nm = dict(SHAPES[iid])[k[0]]
+        if iid in COLORS: nm += ' · ' + COLORS[iid][int(k[1:])][0]
+        out.append(dict(key=k, name=nm))
+    return out
+# 아치형 스탠드는 갓이 왼쪽으로 25px 나가 있다 → 조명 중심도 옮긴다
+LIGHT_SHIFT = {'lamp': {'a': (0, 0), 'b': (-25, 4), 'c': (0, 0)}}

@@ -21,7 +21,7 @@ os.makedirs(OUT, exist_ok=True)
 frames = []
 for li, bld in enumerate(rooms.LEVELS):
     s, items, foot = bld('attic')
-    lays = rooms.item_layers(s, items)
+    lays = [L for L in rooms.item_layers(s, items) if L.get('default', True)]
     mask = rooms.glass_mask(s)
     im = s.im.convert('RGBA')
     for xy, w in rooms.window_imgs(s, mask, '바다', '낮'): im.alpha_composite(w, xy)

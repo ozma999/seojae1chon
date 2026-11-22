@@ -1,7 +1,7 @@
 'use client';
 // 브라우저 전용: 방 그림을 캔버스에 합성한다(프로토타입 v0.6과 같은 순서).
 import type { ArtLevel, ArtManifest, ItemId, RoomBook, RoomState, ThemeKey, Tod } from './types';
-import { autoTheme, bragList, itemOn, pickLevel, type Placed } from './logic';
+import { autoTheme, bragList, itemOn, pickLevel, pickedVar, type Placed } from './logic';
 import { autoTod } from './time';
 import { EBOOK_MARK } from './look';
 
@@ -141,6 +141,7 @@ export function createRenderer(la: LoadedArt) {
     const L = art.levels[li];
     const theme = st.theme ?? autoTheme(st.books), tod = st.tod ?? autoTod();
     const on = (id: ItemId) => itemOn(art, id, n, st.itemsOff);
+    const vOk = (it: { id: ItemId; var?: string }) => !it.var || it.var === pickedVar(art, it.id, st.picks);
     const back = canvas(L.W, L.H), x = ctx2d(back);
     x.drawImage(img(L.bg[theme] ?? L.bg.attic), 0, 0);
     // 책: 배경의 책장 뒷판 색(70,44,32) 픽셀에만 그린다 → 사다리·계단이 책 앞에 남는다
@@ -167,12 +168,12 @@ export function createRenderer(la: LoadedArt) {
     }
     // 아이템: 벽 → 바닥(발 위치 기준 앞뒤)
     const front = canvas(L.W, L.H), fx = ctx2d(front);
-    const wallItems = L.items.filter((it) => on(it.id) && it.kind === 'wall');
+    const wallItems = L.items.filter((it) => on(it.id) && vOk(it) && it.kind === 'wall');
     wallItems.forEach((it) => x.drawImage(img(it.img), it.x, it.y));
-    L.items.filter((it) => on(it.id) && it.kind === 'floor').sort((a, b) => a.base - b.base)
+    L.items.filter((it) => on(it.id) && vOk(it) && it.kind === 'floor').sort((a, b) => a.base - b.base)
       .forEach((it) => (it.base >= L.foot[1] ? fx : x).drawImage(img(it.img), it.x, it.y));
     // 방의 시간(창 유리 제외)
-    const lights = L.lights.filter((l) => on(l.id));
+    const lights = L.lights.filter((l) => on(l.id) && (!l.shape || l.shape === pickedVar(art, l.id, st.picks)?.[0]));
     if (tod !== '낮') {
       const wm = canvas(L.W, L.H), wx = ctx2d(wm);
       winImgs.forEach(({ w, im }) => wx.drawImage(im, w.x, w.y));

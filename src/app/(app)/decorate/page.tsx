@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLibrary } from '@/components/LibraryProvider';
 import { getRenderer, type Renderer } from '@/components/RoomCanvas';
-import { HAIR_TH, OUTFIT_TH } from '@/lib/room/logic';
+import { HAIR_TH, OUTFIT_TH, pickedVar } from '@/lib/room/logic';
 import type { ItemId } from '@/lib/room/types';
 
 /** 꾸미기: 서재 아이템 켜고 끄기 → 머리 → 옷 → 서재 이름 */
@@ -25,8 +25,11 @@ export default function DecoratePage() {
           const u = n >= d.th, on = u && !profile.itemsOff.includes(d.id);
           return (
             <li key={d.id} className={u ? '' : 'locked'}>
-              <span><b>{d.name}</b><small>{u ? `책 ${d.th.toLocaleString()}권 달성` : `책 ${d.th.toLocaleString()}권이면 생겨요`}</small></span>
-              <input type="checkbox" className="sw" checked={on} disabled={!u} onChange={(e) => toggle(d.id, e.target.checked)} aria-label={`${d.name} 켜기`} />
+              <div className="itemrow">
+                <span><b>{d.name}</b><small>{u ? `책 ${d.th.toLocaleString()}권 달성` : `책 ${d.th.toLocaleString()}권이면 생겨요`}</small></span>
+                <input type="checkbox" className="sw" checked={on} disabled={!u} onChange={(e) => toggle(d.id, e.target.checked)} aria-label={`${d.name} 켜기`} />
+              </div>
+              {u && d.vars && <VarPicker r={r} id={d.id} picks={profile.picks} onPick={(k) => save({ picks: { ...profile.picks, [d.id]: k }, itemsOff: profile.itemsOff.filter((x) => x !== d.id) })} />}
             </li>
           );
         })}
@@ -50,6 +53,42 @@ export default function DecoratePage() {
         <input value={name} maxLength={20} onChange={(e) => setName(e.target.value)} aria-label="서재 이름" />
         <button className="btn primary">저장</button>
       </form>
+    </div>
+  );
+}
+
+/** 모양 3가지(그림) + 색 칩. 큰 서재(Lv.3) 그림을 미리보기로 쓴다 */
+function VarPicker({ r, id, picks, onPick }: { r: Renderer; id: ItemId; picks?: Record<string, string | number>; onPick: (key: string) => void }) {
+  const vars = r.art.itemdefs.find((d) => d.id === id)!.vars!;
+  const cur = pickedVar(r.art, id, picks)!, shape = cur[0], color = cur.slice(1);
+  const shapes = [...new Set(vars.map((v) => v.key[0]))];
+  const colors = [...new Set(vars.map((v) => v.key.slice(1)))].filter(Boolean);
+  const L = r.art.levels[2];
+  const layer = (k: string) => L.items.filter((it) => it.id === id && it.var === k).sort((a, b) => b.base - a.base)[0];
+  const nameOf = (k: string) => vars.find((v) => v.key === k)?.name.split(' · ') ?? [];
+  const SW: Record<string, string> = { 파랑: '#3e6eb4', 빨강: '#cc4a3c', 초록: '#5a9e5a', 청록: '#3ea29a', 노랑: '#e8b84a', 크림: '#ecdeba' };
+  return (
+    <div className="vars">
+      <div className="shapes" role="group" aria-label="모양">
+        {shapes.map((s) => {
+          const k = s + color, it = layer(k);
+          return (
+            <button key={s} className="shape" aria-pressed={s === shape} onClick={() => onPick(k)}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- 작은 픽셀 조각 */}
+              {it && <img className="pix" src={`/art/${it.img}`} alt="" />}
+              <small>{nameOf(k)[0]}</small>
+            </button>
+          );
+        })}
+      </div>
+      {colors.length > 0 && (
+        <div className="swatches" role="group" aria-label="색">
+          {colors.map((c) => {
+            const nm = nameOf(shape + c)[1];
+            return <button key={c} className="sw-c" aria-pressed={c === color} aria-label={nm} title={nm} style={{ background: SW[nm] ?? '#ccc' }} onClick={() => onPick(shape + c)} />;
+          })}
+        </div>
+      )}
     </div>
   );
 }
