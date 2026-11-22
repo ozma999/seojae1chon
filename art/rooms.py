@@ -88,6 +88,28 @@ def ladder(s,x0,y0,y1,slope=0.07):
     for y in range(y0+10,y1-6,14):
         x=int(x0+(y-y0)*slope);s.R(x,y,x+16,y+2,'woodL');s.R(x,y+2,x+16,y+3,'O')
     xe=int(x0+(y1-y0)*slope);s.R(xe-2,y1-2,xe+18,y1+1,'O')
+def stairs(s,railing,x0=96,fy=404,top=206,n=14,run=16,w=30):
+    """Lv.4 복층 계단: 바닥(fy)에서 복층 바닥(top)까지 이어진 디딤판 + 옆판(스트링거) + 손잡이."""
+    rise=(fy-top)/n
+    xs=[x0+i*run for i in range(n)];ys=[round(fy-rise*(i+1)) for i in range(n)]
+    xt=xs[-1]+w
+    # 옆판: 디딤판 앞 아래 모서리를 잇는 띠(바닥~복층 바닥까지 끊김 없이)
+    r=round(rise)
+    s.poly([(x0,fy),(x0+w,fy),(xt,top+r),(xt,top+r+9),(x0+w+14,fy)],'woodD')
+    s.poly([(x0+w,fy-1),(xt,top+r-1),(xt,top+r+2),(x0+w+4,fy-1)],'wood')
+    for x,y in zip(xs,ys):
+        box3d(s,x,y,w,round(rise),4,'woodL','wood','woodD')
+        s.R(x,y,x+w,y+1,'woodL')
+    # 손잡이: 아래 기둥 → 기울기 따라 → 위에서 난간과 만남
+    hy=34
+    s.R(x0+2,fy-hy-4,x0+6,fy,'woodD');s.R(x0+1,fy-hy-6,x0+7,fy-hy-3,'woodL')
+    for k in range(0,xt-x0-4):
+        x=x0+4+k;y=round(fy-hy-(fy-top)*k/(xt-x0-4))
+        s.R(x,y,x+1,y+3,'wood');s.P(x,y,'woodL');s.P(x,y+3,'O')
+    for i in range(1,n,2):
+        x=xs[i]+4;y=ys[i];yh=round(fy-hy-(fy-top)*(x-x0-4)/(xt-x0-4))
+        s.R(x,yh+3,x+2,y,'wood')
+    s.R(xt-1,top-hy+1,xt+3,top+1,'woodD');s.R(xt-2,top-hy-2,xt+4,top-hy+1,'woodL')
 def rail_ladder(s,rx0,rx1,ry,lx,ly1,slope=0.15,rail=None):
     """Lv.4: 천장 바로 아래 황동 레일에 걸린 이동식 사다리. 발은 복층 난간 뒤에 숨는다."""
     s.R(rx0,ry,rx1,ry+3,'yellowD');s.R(rx0,ry,rx1,ry+1,'yellow');s.R(rx0,ry+3,rx1,ry+4,'O')
@@ -240,12 +262,13 @@ def L4(theme='attic'):
     for i,yb in enumerate(up+[bv]): s.fill(444,697,yb,18,320+i,dense=True)
     s.FY=FY0
     win(s,346,40,422,196,arch=True,lift=14)   # 아래쪽은 복층 난간에 가려짐
-    def railing(x0=60,x1=708):
+    def railing(x0=60,x1=708,gap=None):
         s.R(x0,206,x1,216,'woodL');s.R(x0,214,x1,217,'wood');s.R(x0,217,x1,218,'O');s.R(x0,205,x1,206,'O')
-        s.R(x0,184,x1,187,'wood');s.R(x0,184,x1,185,'woodL');s.R(x0,187,x1,188,'O')
-        for x in range(64,708,14):
-            if x0<=x and x+3<=x1: s.R(x,188,x+3,206,'wood');s.R(x+2,188,x+3,206,'woodD')
-    railing()
+        for a,b in ([(x0,gap[0]),(gap[1],x1)] if gap else [(x0,x1)]):
+            s.R(a,184,b,187,'wood');s.R(a,184,b,185,'woodL');s.R(a,187,b,188,'O')
+            for x in range(64,708,14):
+                if a<=x and x+3<=b: s.R(x,188,x+3,206,'wood');s.R(x+2,188,x+3,206,'woodD')
+    railing(gap=(262,336))   # 계단이 올라오는 자리는 난간을 튼다
     lo=[226+22*k for k in range(1,8)]
     tl,bl=s.shelf(68,226,330,lo,dep=14)
     for i,yb in enumerate(lo+[bl]): s.fill(74,327,yb,18,340+i,dense=True)
@@ -259,9 +282,7 @@ def L4(theme='attic'):
     box3d(s,346,374,76,30,6,'woodL','woodL','wood')
     s.side_shelf('L',10,40,200,[40+22*k for k in range(1,8)],401);s.side_shelf('R',758,40,200,[40+22*k for k in range(1,8)],402)
     s.side_shelf('L',10,226,404,[226+22*k for k in range(1,8)],403);s.side_shelf('R',758,226,404,[226+22*k for k in range(1,8)],404)
-    for i in range(13):
-        x=96+i*16;y=398-i*14
-        box3d(s,x,y-12,30,12,4,'woodL','wood','woodD')
+    stairs(s,railing)
     items={'desklamp':[F_(lambda:banker_lamp(s,198,444),444)],
        'rug':[F_(lambda:rug(s,404,478,160,32),0)],
        'pile':[F_(lambda:pile(s,250,502,[(26,BOOKS[2],0),(22,BOOKS[6],3),(24,BOOKS[9],-1),(18,BOOKS[3],4)]),502),

@@ -35,12 +35,17 @@ for li, bld in enumerate(rooms.LEVELS):
         else:
             a, fx = obj; im.alpha_composite(a, (fx - a.width // 2, base - a.height + 1))
     im = im.convert('RGB')
-    frames.append(im.resize((768, 576), Image.NEAREST))
-# GIF: 레벨마다 1.6초, 마지막 2.4초
-pal = frames[-1].quantize(colors=255, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
-q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
-frames[-1].resize((384, 288), Image.NEAREST).save(os.path.join(OUT, 'village-lv4.png'))   # 움직임 줄이기용
-# 휴대폰 표시 크기(384px)
-small = [f.resize((384, 288), Image.NEAREST).quantize(palette=pal, dither=Image.Dither.NONE) for f in frames]
-small[0].save(os.path.join(OUT, 'village.gif'), save_all=True, append_images=small[1:], duration=[1600, 1600, 1600, 2400], loop=0, optimize=True)
+    frames.append(im)
+# 도트가 깨지지 않게 레벨마다 '정수 배'로만 키운다: 1536×1152 캔버스에 Lv4×2, Lv3×3, Lv2×4, Lv1×6(천장·양옆 조금 잘림)
+CW, CH = 1536, 1152
+def fit(f):
+    k = -(-CH // f.height)
+    big = f.resize((f.width * k, f.height * k), Image.NEAREST)
+    x, y = (big.width - CW) // 2, big.height - CH   # 위(천장)만 잘라 발밑은 남긴다
+    return big.crop((x, y, x + CW, y + CH))
+big = [fit(f) for f in frames]
+pal = big[-1].quantize(colors=255, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+q = [f.quantize(palette=pal, dither=Image.Dither.NONE) for f in big]
+q[0].save(os.path.join(OUT, 'village.gif'), save_all=True, append_images=q[1:], duration=[1600, 1600, 1600, 2400], loop=0, optimize=True)
+big[-1].save(os.path.join(OUT, 'village-lv4.png'), optimize=True)   # 움직임 줄이기용
 print({f: os.path.getsize(os.path.join(OUT, f)) // 1024 for f in ['village.gif', 'village-lv4.png']}, 'KB')

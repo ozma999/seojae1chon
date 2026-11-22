@@ -10,7 +10,8 @@ export default function Landing() {
       <figure className="village">
         <picture>
           <source srcSet="/brand/village-lv4.png" media="(prefers-reduced-motion: reduce)" />
-          <img src="/brand/village.gif" width={384} height={288} alt="책이 늘면서 Lv.1 작은 방이 Lv.4 복층 서재로 넓어지고, 친구들이 하나둘 모이는 장면" />
+          <source srcSet="/brand/village.webp" type="image/webp" />
+          <img src="/brand/village.gif" width={1536} height={1152} alt="책이 늘면서 Lv.1 작은 방이 Lv.4 복층 서재로 넓어지고, 친구들이 하나둘 모이는 장면" />
         </picture>
         <figcaption>책 50권 → 200권 → 700권 → 2,000권</figcaption>
       </figure>
