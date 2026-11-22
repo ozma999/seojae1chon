@@ -18,6 +18,12 @@ function Login() {
   const sp = useSearchParams();
   const invited = (sp.get('code') ?? '').toUpperCase().slice(0, 6);
   const [mode, setMode] = useState<'in' | 'up' | 'reset'>(invited || sp.get('join') ? 'up' : 'in');
+  const ERR: Record<string, string> = {
+    device: '링크를 요청한 휴대폰(같은 브라우저)에서 열어 주세요. 다른 기기에서 열면 보안 때문에 동작하지 않아요. 비밀번호를 잊었다면 다시 요청해 주세요.',
+    expired: '링크가 만료됐거나 이미 쓴 링크예요. 다시 요청해 주세요.',
+    link: '링크가 올바르지 않아요. 메일의 버튼을 다시 눌러 주세요.',
+  };
+  const linkErr = ERR[sp.get('err') ?? ''];
   const [email, setEmail] = useState(''), [pw, setPw] = useState(''), [pw2, setPw2] = useState(''), [code, setCode] = useState(invited);
   const [msg, setMsg] = useState<string | null>(null), [busy, setBusy] = useState(false);
   const rules = passwordRules(email, pw, pw2);
@@ -54,6 +60,7 @@ function Login() {
     <main className="login">
       <Link href="/" className="loginlogo"><Image src="/brand/logo.png" alt="서재일촌" width={224} height={32} className="pix" priority /></Link>
       <p className="muted">책이 쌓일수록 넓어지는 픽셀 서재</p>
+      {linkErr && <p className="note" role="alert">{linkErr}</p>}
       {!live && <p className="demobar">데모 모드예요. Supabase를 연결하기 전에는 이 브라우저에만 저장돼요.</p>}
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={mode === 'in'} onClick={() => setMode('in')}>로그인</button>

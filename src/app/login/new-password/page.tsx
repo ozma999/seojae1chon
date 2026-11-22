@@ -14,7 +14,8 @@ export default function NewPasswordPage() {
       <form className="stack" onSubmit={async (e) => {
         e.preventDefault();
         const { error } = await supabaseBrowser().auth.updateUser({ password: pw });
-        if (error) setMsg(error.message); else router.push('/room');
+        if (error) setMsg(/session/i.test(error.message) ? '재설정 링크로 들어오지 않았거나 시간이 지났어요. 로그인 화면에서 비밀번호 재설정을 다시 요청해 주세요.' : /weak|password/i.test(error.message) ? '비밀번호가 약해요. 소문자·대문자·숫자·기호를 모두 넣어 8자 이상으로 써 주세요' : error.message);
+        else router.push('/room');
       }}>
         <label className="field">새 비밀번호<input type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></label>
         <label className="field">확인<input type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></label>
