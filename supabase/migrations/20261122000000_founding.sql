@@ -1,4 +1,4 @@
--- 최초 가족: 특별한 초대 코드(FAMILY, 10명)로 가입한 사람에게 'founding' 표시.
+-- 태초가족: 특별한 초대 코드(FAMILY, 10명)로 가입한 사람에게 'founding' 표시.
 -- 나중에 사진 촬영 책 등록 같은 기능을 이분들에게만 먼저 켤 때 쓴다. 사용자는 이 표시를 바꿀 수 없다.
 
 alter table public.invite_codes add column if not exists cohort text;
@@ -35,9 +35,9 @@ $$;
 revoke execute on function public.room_list() from public, anon;
 grant execute on function public.room_list() to authenticated;
 
--- 지금까지 가입한 사람(만든 사람과 테스트 계정)도 최초 가족
+-- 지금까지 가입한 사람(만든 사람과 테스트 계정)도 태초가족
 update public.profiles set cohort = 'founding' where cohort is null;
 
--- 최초 가족 초대 코드: FAMILY, 10명, 기한 없음
+-- 태초가족 초대 코드: FAMILY, 10명, 기한 없음
 insert into public.invite_codes (code, max_uses, cohort) values ('FAMILY', 10, 'founding')
 on conflict (code) do update set max_uses = 10, cohort = 'founding';

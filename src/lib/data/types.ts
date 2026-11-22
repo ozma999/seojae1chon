@@ -20,7 +20,7 @@ export interface Profile {
   hair: number;
   outfit: number;
   itemsOff: ItemId[];
-  /** 'founding' = 최초 가족(FAMILY 코드로 가입). 사진 촬영 등록 등 먼저 여는 기능용 */
+  /** 'founding' = 태초가족(FAMILY 코드로 가입). 사진 촬영 등록 등 먼저 여는 기능용 */
   cohort?: string | null;
 }
 export interface RoomSummary {

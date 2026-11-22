@@ -78,7 +78,7 @@ set role authenticated;
 insert into public.user_books (isbn, brag_at) select lpad(g::text, 13, '9'), now() from generate_series(1, 11) g;
 select pg_temp.expect_fail($$insert into public.user_books (isbn, brag_at) values (lpad('12', 13, '9'), now())$$, '자랑 책장 13번째');
 
--- 최초 가족: FAMILY 코드로 가입하면 cohort = founding, 사용자는 못 바꿈, 일반 코드는 표시 없음
+-- 태초가족: FAMILY 코드로 가입하면 cohort = founding, 사용자는 못 바꿈, 일반 코드는 표시 없음
 reset role;
 insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-0000-0000-00000000000f', 'f@x', '{"invite_code":"family"}');
 insert into public.invite_codes (code) values ('PLAIN2');
@@ -90,7 +90,7 @@ do $$ begin
 end $$;
 set role authenticated;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
-select pg_temp.expect_fail($$update public.profiles set cohort = 'founding' where id = auth.uid()$$, '최초 가족 표시 위조');
+select pg_temp.expect_fail($$update public.profiles set cohort = 'founding' where id = auth.uid()$$, '태초가족 표시 위조');
 do $$ begin assert (select cohort from public.room_list() where id = '00000000-0000-0000-0000-00000000000f') = 'founding', 'room_list에 cohort'; end $$;
 reset role;
 -- 로그인 안 한 사용자(anon)는 아무것도 못 본다

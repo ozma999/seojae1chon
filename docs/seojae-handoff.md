@@ -136,6 +136,11 @@ python3 materials.py       # out/materials-64.png
 
 ---
 
+
+### 태초가족
+- 초대 코드 **FAMILY**(10명, 기한 없음)로 가입한 사람 = 태초가족(`profiles.cohort = 'founding'`, 사용자가 못 바꿈). 기존 가입자도 포함. 내 책장·일촌 목록에 배지.
+- 사진 촬영 책 등록(유료 AI)은 태초가족에게 먼저 연다(비용은 운영자 부담). 안내문: `docs/invite-message.md`.
+
 ## 4. 사용자 작업 스타일과 피드백 이력 (꼭 지킬 것)
 
 - 전면 재작성보다 **구조화된 반복 개선**. 작업마다 **self-critique와 red-team** 포함.

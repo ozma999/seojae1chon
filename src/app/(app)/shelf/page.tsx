@@ -25,7 +25,7 @@ export default function ShelfPage() {
     <div className="pad shelf">
       <h1 className="h">내 책장</h1>
       <section className="card titlecard">
-        {profile?.cohort === 'founding' && <span className="badge">최초 가족</span>}
+        {profile?.cohort === 'founding' && <span className="badge">태초가족</span>}
         <small className="muted">나의 칭호</small>
         <p className="title">{shelfTitle(entries)}</p>
       </section>
