@@ -12,7 +12,7 @@ import type { Genre } from '@/lib/room/types';
 
 /** 내 책장: 자랑하고 싶어지는 대시보드 + 내 책 목록 */
 export default function ShelfPage() {
-  const { entries, ready } = useLibrary();
+  const { entries, ready, profile } = useLibrary();
   const now = useClock();
   const [pick, setPick] = useState<LibraryEntry | null>(null);
   const tower = useMemo(() => towerInfo(entries), [entries]);
@@ -25,6 +25,7 @@ export default function ShelfPage() {
     <div className="pad shelf">
       <h1 className="h">내 책장</h1>
       <section className="card titlecard">
+        {profile?.cohort === 'founding' && <span className="badge">최초 가족</span>}
         <small className="muted">나의 칭호</small>
         <p className="title">{shelfTitle(entries)}</p>
       </section>

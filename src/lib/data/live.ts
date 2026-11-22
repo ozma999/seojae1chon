@@ -21,7 +21,7 @@ export function liveRepo(): Repo {
     if (p.error) throw new Error(p.error.message);
     if (e.error) throw new Error(e.error.message);
     return {
-      profile: { id, roomName: p.data.room_name, hair: p.data.hair, outfit: p.data.outfit, itemsOff: p.data.items_off as ItemId[] },
+      profile: { id, roomName: p.data.room_name, hair: p.data.hair, outfit: p.data.outfit, itemsOff: p.data.items_off as ItemId[], cohort: p.data.cohort ?? null },
       entries: (e.data as unknown as Row[]).map(rowToEntry),
     };
   }
@@ -32,9 +32,9 @@ export function liveRepo(): Repo {
     async listRooms() {
       const { data, error } = await sb.rpc('room_list');
       if (error) throw new Error(error.message);
-      return (data as { id: string; room_name: string; hair: number; outfit: number; books: number; brag: number; last_added: string | null; is_me: boolean }[])
+      return (data as { id: string; room_name: string; hair: number; outfit: number; books: number; brag: number; last_added: string | null; is_me: boolean; cohort: string | null }[])
         .map((r): RoomSummary => ({ id: r.id, roomName: r.room_name, hair: r.hair, outfit: r.outfit, books: r.books, brag: r.brag,
-          lastAdded: r.last_added ? Date.parse(r.last_added) : null, isMe: r.is_me }));
+          lastAdded: r.last_added ? Date.parse(r.last_added) : null, isMe: r.is_me, cohort: r.cohort }));
     },
     async visit(id) {
       const me = await uid();
