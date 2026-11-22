@@ -6,9 +6,8 @@ import { normalizeIsbn } from '@/lib/books/isbn';
 import type { AddMethod } from '@/lib/data/types';
 import { GENRE_NAME } from '@/lib/room/logic';
 import { missingVols } from '@/lib/books/series';
+import { canUseCamera, getDetector } from '@/lib/books/barcode';
 
-type Detector = { detect: (src: CanvasImageSource) => Promise<{ rawValue: string }[]> };
-declare global { interface Window { BarcodeDetector?: new (o: { formats: string[] }) => Detector } }
 
 const looksLikeIsbn = (s: string) => /^[\d\s-]{10,17}[\dXx]?$/.test(s.trim()) && s.replace(/\D/g, '').length >= 10;
 
@@ -20,7 +19,7 @@ export default function AddPage() {
   const [method, setMethod] = useState<AddMethod>('search');
   const [scan, setScan] = useState(false);
   const [series, setSeries] = useState<BookInfo | null>(null);
-  const canScan = useSyncExternalStore(() => () => {}, () => !!window.BarcodeDetector && !!navigator.mediaDevices, () => false);
+  const canScan = useSyncExternalStore(() => () => {}, canUseCamera, () => false);
   const seq = useRef(0);
 
   /** 검색(가장 마지막 요청의 결과만 보여준다) */
@@ -65,7 +64,7 @@ export default function AddPage() {
       {canScan ? (
         <button className="btn" onClick={() => setScan((s) => !s)}>{scan ? '카메라 닫기' : '바코드 찍기'}</button>
       ) : (
-        <p className="muted small">이 브라우저는 바코드 인식을 지원하지 않아요. 제목을 치거나 책 뒷면의 ISBN 13자리를 입력해 주세요.</p>
+        <p className="muted small">이 브라우저에서는 카메라를 쓸 수 없어요. 제목을 치거나 책 뒷면의 ISBN 13자리를 입력해 주세요.</p>
       )}
       {scan && <Scanner onCode={(code) => { setScan(false); setQ(code); find(code, 'barcode'); }} />}
       {busy && !results && <p className="muted small">찾는 중…</p>}
@@ -175,10 +174,10 @@ function Scanner({ onCode }: { onCode: (isbn: string) => void }) {
   const [msg, setMsg] = useState('책 뒷면 바코드를 화면 가운데에 맞춰 주세요');
   useEffect(() => {
     let stream: MediaStream | null = null, stop = false;
-    const det = new window.BarcodeDetector!({ formats: ['ean_13'] });
     (async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const det = await getDetector();   // 아이폰은 여기서 인식기(약 1MB)를 처음 한 번 받는다
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } });
         if (!video.current) return;
         video.current.srcObject = stream;
         await video.current.play();

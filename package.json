@@ -10,11 +10,13 @@
     "test": "vitest run",
     "test:db": "bash supabase/tests/run_local.sh",
     "art": "cd art && python3 rooms.py && python3 split_art.py",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/copy-wasm.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.2",
+    "barcode-detector": "^3.2.4",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",

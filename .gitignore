@@ -44,3 +44,4 @@ next-env.d.ts
 art/out/
 art/*.png
 art/__pycache__/
+public/wasm/
