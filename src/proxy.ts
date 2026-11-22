@@ -7,10 +7,10 @@ const PUBLIC = ['/login', '/auth', '/sample'];
 /** 로그인 세션을 갱신하고, 로그인하지 않았으면 /login으로 보낸다(데모 모드에서는 통과) */
 export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return NextResponse.next();
   // 메일 링크가 콜백이 아닌 곳(홈 등)으로 돌아와도 로그인 코드를 콜백으로 넘긴다
   const fwd = forwardAuthCode(request.nextUrl);
   if (fwd) return NextResponse.redirect(fwd);
+  if (!url || !key) return NextResponse.next();
   let response = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
     cookies: {
