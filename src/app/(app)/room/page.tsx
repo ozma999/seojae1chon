@@ -57,7 +57,7 @@ export default function RoomPage() {
       </header>
       <div className="subbar">
         <span className="muted small">오늘 방문 <b className="today">{visits ?? '-'}</b></span>
-        <Link href="/walk" className="chip">서재산책 ›</Link>
+        <Link href="/ilchon" className="chip">서재산책 ›</Link>
       </div>
       <RoomCanvas state={state} onWorld={(w, r) => { setWorld(w); setArt(r.art); }}
         onPick={(h) => { if (h.book) setPick(entries.find((e) => e.id === h.book!.id) ?? null); else if (h.empty) say('책을 눌러 \'자랑 책장에 꽂기\'를 고르면 여기에 표지가 보여요'); }} />

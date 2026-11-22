@@ -40,7 +40,7 @@ function FriendRoom() {
   return (
     <div>
       <header className="bar">
-        <Link href="/walk" className="back" aria-label="서재산책으로">‹</Link>
+        <Link href="/ilchon" className="back" aria-label="일촌으로">‹</Link>
         <h1 className="logo">{room.profile.roomName}</h1>
         {world && <span className="lv">Lv.{world.li + 1} {world.level.name}</span>}
       </header>
