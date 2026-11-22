@@ -7,6 +7,7 @@ import type { AddMethod } from '@/lib/data/types';
 import { GENRE_NAME } from '@/lib/room/logic';
 import { missingVols } from '@/lib/books/series';
 import { canUseCamera, getDetector } from '@/lib/books/barcode';
+import { BulkScan, PasteBulk } from '@/components/BulkAdd';
 
 
 const looksLikeIsbn = (s: string) => /^[\d\s-]{10,17}[\dXx]?$/.test(s.trim()) && s.replace(/\D/g, '').length >= 10;
@@ -19,6 +20,7 @@ export default function AddPage() {
   const [method, setMethod] = useState<AddMethod>('search');
   const [scan, setScan] = useState(false);
   const [series, setSeries] = useState<BookInfo | null>(null);
+  const [bulk, setBulk] = useState<'scan' | 'paste' | null>(null);
   const canScan = useSyncExternalStore(() => () => {}, canUseCamera, () => false);
   const seq = useRef(0);
   const lastQuery = useRef('');   // 바코드·찾기 버튼으로 이미 검색한 말은 자동완성이 다시 부르지 않게
@@ -57,7 +59,7 @@ export default function AddPage() {
 
   return (
     <div className="pad">
-      <h1 className="h">책 등록</h1>
+      <h1 className="h">책 추가</h1>
       <form className="row" onSubmit={(e) => { e.preventDefault(); find(q, 'search'); }}>
         <input value={q} onChange={(e) => { setQ(e.target.value); if (!e.target.value.trim()) setResults(null); }}
           placeholder="제목·작가 또는 ISBN 13자리" aria-label="ISBN 또는 제목" inputMode="search" autoComplete="off" />
@@ -88,9 +90,15 @@ export default function AddPage() {
       )}
       <p className="muted small">도서 정보 제공: Google Books · 국립중앙도서관</p>
       <section className="card">
-        <h2>책장 사진으로 한꺼번에</h2>
-        <p className="muted small">책장을 한 칸씩 찍으면 책등을 읽어 한 번에 추가해요. 다음 단계에서 붙입니다.</p>
+        <h2>한꺼번에 등록</h2>
+        <p className="muted small">책이 많을 때는 모아서 한 번에 꽂아요.</p>
+        <div className="bulkbtns">
+          {canScan && <button className="btn" onClick={() => setBulk('scan')}><b>연속 바코드</b><small>책 뒷면을 차례로 찍기</small></button>}
+          <button className="btn" onClick={() => setBulk('paste')}><b>텍스트 붙여넣기</b><small>책장 사진 글자·책 목록</small></button>
+        </div>
       </section>
+      {bulk === 'scan' && <BulkScan onClose={() => setBulk(null)} />}
+      {bulk === 'paste' && <PasteBulk onClose={() => setBulk(null)} />}
       {series && <SeriesSheet book={series} method={method} onClose={() => setSeries(null)} onOne={() => { addOne(series); setSeries(null); }}
         onSearch={(text) => { setSeries(null); setQ(text); }} />}
     </div>
