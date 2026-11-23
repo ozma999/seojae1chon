@@ -16,11 +16,11 @@ THEMES={
    wall=M.panel,wallk=['grey','grey','greyD','teal'],side=['greyD','greyD','navyD','teal'],
    floor=M.tile,floork=['greyD','greyD','grey','teal'],ceil='navyD',beam='navy',base='navyD',sh1='greyD',sh2='greyD'),
  'manga':dict(name='만화방',genre='manga',scene='도시',
-   wall=M.dots,wallk=['cream','white','wallS','white'],side=['wallS','cream','wallD','cream'],
-   floor=M.check,floork=['white','grey','greyD','white'],ceil='red',beam='redD',base='redD',sh1='wallD',sh2='wallS'),
+   wall=M.dots,wallk=['cream','pink','wallS','white'],side=['wallS','pink','wallD','cream'],
+   floor=M.check,floork=['white','wallS','wallD','white'],ceil='red',beam='redD',base='redD',sh1='wallD',sh2='wallS'),
  'study':dict(name='서고',genre='hum',scene='숲',
    wall=lambda x,y,s:1 if x%8==0 else 0,wallk=['greenD','green','greenD','green'],side=['greenD','green','greenD','green'],
-   floor=M.carpet,floork=['redD','redD','red','yellowD'],ceil='woodD',beam='O',base='woodD',sh1='navyD',sh2='greenD'),
+   floor=M.hplank,floork=['wood','woodD','woodD','woodL'],ceil='woodD',beam='O',base='woodD',sh1='navyD',sh2='greenD'),
 }
 TODS=['새벽','낮','노을','밤']
 PAL=list(K.values())
@@ -289,11 +289,13 @@ def L4(theme='attic'):
     items={'desklamp':[F_(lambda:banker_lamp(s,198,444),444)],
        'rug':[F_(lambda:rug(s,404,482,214,40),0)],
        'pile':[F_(lambda:pile(s,250,502,[(26,BOOKS[2],0),(22,BOOKS[6],3),(24,BOOKS[9],-1),(18,BOOKS[3],4)]),502),
-               F_(lambda:pile(s,600,522,[(24,BOOKS[5],0),(20,BOOKS[7],2),(22,BOOKS[4],-2)]),522)],
+               F_(lambda:pile(s,600,522,[(24,BOOKS[5],0),(20,BOOKS[7],2),(22,BOOKS[4],-2)]),522),
+               F_(lambda:pile(s,118,470,[(22,BOOKS[1],0),(26,BOOKS[8],-2),(20,BOOKS[10],2),(24,BOOKS[0],0),(18,BOOKS[6],3)]),470)],
        'plant':[F_(lambda:pot_plant(s,40,522,True),522),F_(lambda:pot_plant(s,700,542,True),542)],
        'lamp':[F_(lambda:floorlamp(s,606,410,474),477)],
        'deco':[W_(lambda:postcard(s,354,358))],
-       'chair':[F_(lambda:armchair(s,520,472),472),F_(lambda:sidetable(s,570,470),470)],
+       'chair':[F_(lambda:armchair(s,520,472),472),F_(lambda:sidetable(s,570,470),470),
+                F_(lambda:armchair(s,250,548),548),F_(lambda:sidetable(s,300,546),546)],   # 복층은 넓어서 소파 한 쌍 더
        'pendant':[W_(lambda:variants.chandelier(s,384,0,24,124))],
        'valance':[W_(lambda:valance(s,346,422,36))],
        'globe':[F_(lambda:globe(s,660,466),466)],
@@ -328,7 +330,10 @@ def item_layers(s,items):
                 assert cols<=set(PAL),('팔레트 밖 색',iid,cols-set(PAL))
                 out.append(dict(id=iid,kind=kind,base=base,x=bb[0],y=bb[1],im=rgba.crop(bb),var=vk,default=vk==vks[0]))
       variants.VAR.pop(iid,None)
-    s.im.paste(keep);return out
+    s.im.paste(keep)
+    # 샹들리에는 방 가운데 앞쪽에 매달려 있으므로 커튼·액자 같은 벽 물건보다 나중에(앞에) 그린다
+    out.sort(key=lambda L:L['id']=='pendant')
+    return out
 def glass_mask(s):
     a=[255 if p==SENT else 0 for p in s.im.get_flattened_data()]
     m=Image.new('L',s.im.size);m.putdata(a);return m
