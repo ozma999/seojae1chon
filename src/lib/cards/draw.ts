@@ -50,9 +50,9 @@ export async function drawCard(d: CardData): Promise<HTMLCanvasElement> {
   c.fillStyle = C.bg; c.fillRect(0, 0, W, H);
   c.textBaseline = 'alphabetic';
   // 머리: 로고 + 서재 이름
-  const logo = await img('/brand/logo.png');
+  const logo = await img('/brand/logo-h-light.png');
   c.imageSmoothingEnabled = false;
-  if (logo) c.drawImage(logo, M, 84, logo.width * 2, logo.height * 2);
+  if (logo) { c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(logo, M, 66, 280, 96); c.imageSmoothingEnabled = false; }
   c.fillStyle = C.muted; c.font = SANS(36); c.textAlign = 'right'; c.fillText(d.profile.roomName, W - M, 132); c.textAlign = 'left';
   // 꼬리
   c.fillStyle = C.line; c.fillRect(M, H - 150, W - 2 * M, 3);

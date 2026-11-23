@@ -133,16 +133,19 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .invites li.used { opacity: .5; }
 /* 머리말 로고 */
 .brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
-.brand img { height: 26px; width: auto; image-rendering: pixelated; flex: none; }
+.brand img { height: 36px; width: auto; flex: none; }
+/* 로고는 큰 원본을 줄여 쓰므로 부드럽게(픽셀 깨짐 방지) */
+.logoimg { image-rendering: auto; height: auto; }
+.logoimg.hero { width: 220px; height: auto; }
 .brand .rn { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chip, .lv, .facts div, .results li, .items li, .invites li { border-color: var(--line); }
 .prog { background: #e4d8bd; }
 img.pix, .pix { image-rendering: pixelated; }
-.bar .brand img, .loginlogo img { height: 26px; width: auto; }
-.loginlogo { margin-top: 36px; display: inline-flex; }
-.loginlogo img { height: 32px; }
+.bar .brand img { height: 36px; width: auto; }
+.loginlogo { margin-top: 28px; display: inline-flex; }
+.loginlogo img { width: 200px; height: auto; }
 .landing { max-width: 440px; margin: 0 auto; padding: 22px 20px 48px; display: grid; gap: 8px; justify-items: center; text-align: center; }
-.landing > img { height: 32px; width: auto; }
+.landing > img { width: 220px; height: auto; }
 .village { margin: 10px 0 0; width: 100%; }
 .village img { width: 100%; height: auto; image-rendering: auto; /* 큰 원본을 줄여 보여 주므로 부드럽게 */ border-radius: 12px; border: 2px solid var(--ink); display: block; }
 .village figcaption { font: 700 12px var(--pixel); color: var(--muted); margin-top: 6px; }

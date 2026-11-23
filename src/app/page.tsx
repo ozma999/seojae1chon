@@ -6,7 +6,7 @@ import { DemoEnter } from './DemoEnter';
 export default function Landing() {
   return (
     <main className="landing">
-      <Image src="/brand/logo.png" alt="서재일촌" width={224} height={32} className="pix" priority />
+      <Image src="/brand/logo-h-light.png" alt="서재일촌 seojae1chon" width={268} height={92} className="logoimg hero" priority />
       <figure className="village">
         <picture>
           <source srcSet="/brand/village-lv4.png" media="(prefers-reduced-motion: reduce)" />

@@ -58,7 +58,7 @@ export default function RoomPage() {
     <div>
       <header className="bar">
         <div className="brand">
-          <Image src="/brand/logo.png" alt="서재일촌" width={224} height={32} className="pix" priority />
+          <Image src="/brand/logo-h-light.png" alt="서재일촌" width={268} height={92} className="logoimg" priority />
           <h1 className="rn">· {profile!.roomName}</h1>
         </div>
         {world && <span className="lv">Lv.{world.li + 1} {world.level.name}</span>}
