@@ -195,7 +195,7 @@ def L1(theme='attic'):
        'lamp':[F_(lambda:floorlamp(s,266,122,186),189)],
        'deco':[W_(lambda:postcard(s,108,104)),W_(lambda:side_frame(s))],
        'chair':[F_(lambda:armchair(s,190,198),198),F_(lambda:sidetable(s,240,194),194)],
-       'pendant':[W_(lambda:variants.chandelier(s,144,0,10,36))],
+       'pendant':[W_(lambda:variants.chandelier(s,144,0,9,48))],
        'valance':[W_(lambda:valance(s,120,168,24))],
        'globe':[F_(lambda:globe(s,72,190),190)]}
     return s,items,(144,205)
@@ -218,7 +218,7 @@ def L2(theme='attic'):
        'lamp':[F_(lambda:floorlamp(s,320,194,258),261)],
        'deco':[W_(lambda:postcard(s,170,104)),W_(lambda:frame(s,192,104,22,16))],
        'chair':[F_(lambda:armchair(s,40,264),264),F_(lambda:sidetable(s,90,260),260)],
-       'pendant':[W_(lambda:variants.chandelier(s,192,0,14,48))],
+       'pendant':[W_(lambda:variants.chandelier(s,192,0,12,64))],
        'valance':[W_(lambda:valance(s,168,216,26))],
        'globe':[F_(lambda:globe(s,270,262),262)]}
     return s,items,(192,268)
@@ -248,7 +248,7 @@ def L3(theme='attic'):
        'lamp':[F_(lambda:floorlamp(s,76,256,320),323)],
        'deco':[W_(lambda:postcard(s,236,182))],
        'chair':[F_(lambda:armchair(s,96,320),320),F_(lambda:sidetable(s,146,318),318)],
-       'pendant':[W_(lambda:variants.chandelier(s,256,0,20,68))],
+       'pendant':[W_(lambda:variants.chandelier(s,256,0,18,92))],
        'valance':[W_(lambda:valance(s,232,280,46))],
        'globe':[F_(lambda:globe(s,412,316),316)],
        'ladder':[W_(lambda:ladder(s,196,30,266))],
@@ -294,7 +294,7 @@ def L4(theme='attic'):
        'lamp':[F_(lambda:floorlamp(s,606,410,474),477)],
        'deco':[W_(lambda:postcard(s,354,358))],
        'chair':[F_(lambda:armchair(s,520,472),472),F_(lambda:sidetable(s,570,470),470)],
-       'pendant':[W_(lambda:variants.chandelier(s,384,0,26,92))],
+       'pendant':[W_(lambda:variants.chandelier(s,384,0,24,124))],
        'valance':[W_(lambda:valance(s,346,422,36))],
        'globe':[F_(lambda:globe(s,660,466),466)],
        'ladder':[W_(lambda:rail_ladder(s,446,694,32,560,204,0.15,rail=railing))],
@@ -303,10 +303,10 @@ def L4(theme='attic'):
 LEVELS=[L1,L2,L3,L4]
 # 저녁·밤·새벽에 켜지는 조명이 밝히는 범위(타원 중심 x,y와 반지름). 아이템이 켜져 있을 때만 적용.
 LIGHTS=[
- [dict(id='desklamp',x=109,y=180,rx=58,ry=52),dict(id='pendant',x=144,y=118,rx=96,ry=96),dict(id='lamp',x=267,y=158,rx=40,ry=52)],
- [dict(id='desklamp',x=119,y=230,rx=62,ry=56),dict(id='pendant',x=192,y=160,rx=128,ry=124),dict(id='lamp',x=321,y=226,rx=46,ry=58)],
- [dict(id='desklamp',x=183,y=294,rx=70,ry=62),dict(id='pendant',x=256,y=214,rx=160,ry=170),dict(id='lamp',x=77,y=288,rx=52,ry=60)],
- [dict(id='desklamp',x=207,y=438,rx=80,ry=70),dict(id='pendant',x=384,y=330,rx=240,ry=250),dict(id='lamp',x=607,y=442,rx=62,ry=66)]]
+ [dict(id='desklamp',x=109,y=180,rx=58,ry=52),dict(id='pendant',x=144,y=34,rx=44,ry=32),dict(id='pendant',x=144,y=150,rx=132,ry=100),dict(id='lamp',x=267,y=158,rx=40,ry=52)],
+ [dict(id='desklamp',x=119,y=230,rx=62,ry=56),dict(id='pendant',x=192,y=44,rx=58,ry=42),dict(id='pendant',x=192,y=200,rx=176,ry=128),dict(id='lamp',x=321,y=226,rx=46,ry=58)],
+ [dict(id='desklamp',x=183,y=294,rx=70,ry=62),dict(id='pendant',x=256,y=66,rx=80,ry=58),dict(id='pendant',x=256,y=270,rx=236,ry=170),dict(id='lamp',x=77,y=288,rx=52,ry=60)],
+ [dict(id='desklamp',x=207,y=438,rx=80,ry=70),dict(id='pendant',x=384,y=88,rx=108,ry=78),dict(id='pendant',x=384,y=410,rx=350,ry=240),dict(id='lamp',x=607,y=442,rx=62,ry=66)]]
 NAMES=['클로즈업','방','큰 서재','복층 서재']
 
 # ---------- 레이어 추출 ----------
@@ -410,6 +410,7 @@ def export(outdir='.'):
                         bg={},win=[dict(x=b[0],y=b[1]) for b in s.glass])
                 for w in lv['win']: w['img']={}
                 lv['walk']=walk_data(s,lays)
+                lv['fx']={'pendant':{k:{'glow':v['glow'],'sparkle':v['sparkle']} for k,v in getattr(s,'fx',{}).items()}}
             mask=glass_mask(s)
             day=window_imgs(s,mask,THEMES[tk]['scene'],'낮')
             bg=s.im.convert('RGBA')

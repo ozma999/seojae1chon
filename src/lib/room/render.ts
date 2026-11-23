@@ -134,6 +134,8 @@ export interface World {
   blocks: [number, number, number, number][];
   /** 들를 곳(물건이 켜져 있을 때만) */
   poi: NonNullable<ArtLevel['walk']>['poi'];
+  /** 샹들리에 효과 자리(켜져 있을 때) */
+  fx: { glow: [number, number][]; sparkle: [number, number][] } | null;
   hits: Hit[]; overflow: number; bragSlots: number;
 }
 const canvas = (w: number, h: number) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -198,7 +200,8 @@ export function createRenderer(la: LoadedArt) {
     const blocks = floor.filter((f) => f.base > 0).map((f) => [f.x - 3, f.base - 7, f.x + f.w + 3, f.base + 3] as [number, number, number, number]);
     const need: Record<string, ItemId> = { sofa: 'chair', plant: 'plant' };
     const poi = (L.walk?.poi ?? []).filter((q) => !need[q.kind] || on(need[q.kind]));
-    return { li, level: L, theme, tod, back, floor, lights, blocks, poi, hits, overflow, bragSlots };
+    const fx = on('pendant') ? L.fx?.pendant?.[pickedVar(art, 'pendant', st.picks) ?? 'a'] ?? null : null;
+    return { li, level: L, theme, tod, back, floor, lights, blocks, poi, fx, hits, overflow, bragSlots };
   }
 
   /** 예전 정면 캐릭터 시트(공유 카드·움직임 끔일 때) */
@@ -236,10 +239,11 @@ export function createRenderer(la: LoadedArt) {
   }
 
   /** 화면 캔버스에 방 + (바닥 물건·캐릭터를 발 위치 순서로) s배로 그린다 */
-  function composite(ctx: CanvasRenderingContext2D, w: World, s: number, actors: ActorDraw[]) {
+  function composite(ctx: CanvasRenderingContext2D, w: World, s: number, actors: ActorDraw[], t = -1) {
     const L = w.level;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(w.back, 0, 0, L.W * s, L.H * s);
+    drawFx(ctx, w, s, t);
     type D = { base: number; draw: () => void };
     const list: D[] = w.floor.map((f) => ({ base: f.base, draw: () => ctx.drawImage(f.c, f.x * s, f.y * s, f.c.width * s, f.c.height * s) }));
     for (const a of actors) list.push({ base: a.base ?? a.y, draw: () => {
@@ -251,20 +255,60 @@ export function createRenderer(la: LoadedArt) {
     list.sort((p, q) => p.base - q.base).forEach((d) => d.draw());
   }
   /**
+   * 샹들리에 효과. 저녁·밤·새벽에는 촛불·전구 둘레가 은은하게 빛나고(촛불은 살짝 일렁임),
+   * 크리스탈은 2.4초마다 구슬 두 개가 반짝인다. t < 0 이면(동작 줄이기) 일렁임·반짝임 없이 빛만.
+   */
+  function drawFx(ctx: CanvasRenderingContext2D, w: World, s: number, t: number) {
+    if (!w.fx) return;
+    const dot = (x: number, y: number, c: string) => { ctx.fillStyle = c; ctx.fillRect(x * s, y * s, s, s); };
+    if (w.tod !== '낮') {
+      w.fx.glow.forEach(([x, y], i) => {
+        const dim = t >= 0 && Math.floor(t * 3 + i * 1.7) % 5 === 0;      // 가끔 한 번씩 작아지는 일렁임
+        const r = dim ? 3 : 4;
+        for (let dy = -r; dy <= r; dy++)
+          for (let dx = -r; dx <= r; dx++) {
+            const d = Math.abs(dx) + Math.abs(dy);
+            if (!d || d > r) continue;
+            if (d === 1) dot(x + dx, y + dy, 'rgba(255,236,170,0.85)');
+            else if (d === 2 && (x + y + dx + dy) % 2 === 0) dot(x + dx, y + dy, 'rgba(242,196,107,0.6)');
+            else if (d === 3 && (x + y + dx + dy) % 2 === 0) dot(x + dx, y + dy, 'rgba(242,196,107,0.4)');
+            else if (d === 4 && (x + dx) % 2 === 0 && (y + dy) % 2 === 0) dot(x + dx, y + dy, 'rgba(242,196,107,0.25)');
+          }
+        dot(x, y, '#fff6d8');
+      });
+    }
+    const sp = w.fx.sparkle;
+    if (t >= 0 && sp.length) {
+      const slot = Math.floor(t / 2.4), ph = t - slot * 2.4;
+      if (ph < 0.4) {
+        const peak = ph >= 0.12 && ph <= 0.28, arm = peak ? 3 : 2;
+        for (let k = 0; k < 3; k++) {
+          const [x, y] = sp[(slot * 7919 + k * 104729) % sp.length];
+          dot(x, y, '#ffffff');
+          for (let a = 1; a <= arm; a++) {
+            const c = a === arm ? 'rgba(255,255,255,0.6)' : '#ffffff';
+            dot(x - a, y, c); dot(x + a, y, c); dot(x, y - a, c); dot(x, y + a, c);
+          }
+          if (peak) for (const [dx, dy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]) dot(x + dx, y + dy, 'rgba(255,255,255,0.7)');
+        }
+      }
+    }
+  }
+  /**
    * 목표 크기(기기 픽셀)에 맞춰 그리기. 픽셀 그림을 1.5배·2.3배처럼 어중간한 배율로 늘리면
    * 1px 선이 어떤 곳은 1칸, 어떤 곳은 2칸이 되어 스탠드 봉·소파 윤곽이 깨져 보인다.
    * → 배율이 정수에 가까우면 그대로, 아니면 한 단계 큰 정수 배로 그린 뒤 부드럽게 줄인다(모든 선이 같은 굵기)
    */
   let off: HTMLCanvasElement | null = null;
-  function compositeFit(ctx: CanvasRenderingContext2D, w: World, tw: number, th: number, actors: ActorDraw[]) {
-    const L = w.level, t = tw / L.W, k = Math.round(t);
-    if (k >= 1 && Math.abs(t - k) < 0.08) { composite(ctx, w, t, actors); return; }
-    const K = Math.ceil(t);
+  function compositeFit(ctx: CanvasRenderingContext2D, w: World, tw: number, th: number, actors: ActorDraw[], t = -1) {
+    const L = w.level, sc = tw / L.W, k = Math.round(sc);
+    if (k >= 1 && Math.abs(sc - k) < 0.08) { composite(ctx, w, sc, actors, t); return; }
+    const K = Math.ceil(sc);
     off ??= document.createElement('canvas');
     if (off.width !== L.W * K || off.height !== L.H * K) { off.width = L.W * K; off.height = L.H * K; }
     const o = off.getContext('2d')!;
     o.clearRect(0, 0, off.width, off.height);
-    composite(o, w, K, actors);
+    composite(o, w, K, actors, t);
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(off, 0, 0, tw, th);
     ctx.imageSmoothingEnabled = false;

@@ -166,6 +166,7 @@ LIGHT_SHIFT = {'lamp': {'a': (0, 0), 'b': (-24, 4), 'c': (0, 0)}}
 def chandelier(s, cx, y0, y1, w):
     """천장(y0)에서 사슬로 y1까지 내려와 폭 w로 펼쳐진다. 방이 클수록 w가 크다"""
     shp, _ = cur('pendant')
+    fx = s.__dict__.setdefault('fx', {}).setdefault(shp, {'glow': [], 'sparkle': []})
     for y in range(y0, y1):                                           # 사슬(한 칸씩 엇갈림)
         s.P(cx + (y % 2), y, 'O'); s.P(cx + 1 - (y % 2), y, 'yellowD')
     s.R(cx - 3, y0, cx + 5, y0 + 2, 'yellowD'); s.R(cx - 3, y0, cx + 5, y0 + 1, 'O')     # 천장 받침
@@ -184,6 +185,7 @@ def chandelier(s, cx, y0, y1, w):
             ch = 4 if w < 40 else 6
             s.R(x - 1, y - 2 - ch, x + 2, y - 2, 'white'); s.R(x + 1, y - 2 - ch, x + 2, y - 2, 'wallS')   # 초
             s.P(x, y - 3 - ch, 'yellow'); s.P(x, y - 4 - ch, 'orange'); s.P(x, y - 5 - ch, 'yellow')     # 불꽃
+            fx['glow'].append((x, y - 4 - ch))
         s.P(cx, y1 + h + 2, 'yellowD'); s.P(cx + 1, y1 + h + 2, 'yellowD'); s.P(cx, y1 + h + 3, 'yellow')
         return
     if shp == 'b':                                                    # 크리스탈: 겹겹이 매달린 유리구슬
@@ -197,6 +199,7 @@ def chandelier(s, cx, y0, y1, w):
                 ln = 3 + ((x * 7 + k) % 3)
                 s.R(x - 1, ty + 1, x + 2, ty + 2 + ln, 'seaD')
                 s.R(x, ty + 1, x + 1, ty + 1 + ln, 'skyL'); s.P(x, ty + ln, 'white'); s.P(x + 1, ty + 1, 'sky')
+                fx['sparkle'].append((x, ty + ln))
             s.R(cx - hw - 1, ty - 1, cx + hw + 3, ty + 2, 'O'); s.R(cx - hw, ty, cx + hw + 2, ty + 1, 'yellow')   # 놋쇠 고리
         by = y1 + 3 + tiers * (h // tiers + 1)
         s.R(cx - 1, by, cx + 3, by + 6, 'seaD'); s.R(cx, by, cx + 2, by + 5, 'skyL'); s.P(cx, by + 4, 'white'); s.P(cx + 1, by + 1, 'sky')
@@ -214,3 +217,4 @@ def chandelier(s, cx, y0, y1, w):
         x = round(cx + math.cos(a) * w / 2); y = round(rcy + math.sin(a) * ry)
         s.R(x, y, x + 1, y + 3, 'O')
         s.R(x - 1, y + 3, x + 2, y + 6, 'cream'); s.P(x, y + 4, 'white'); s.R(x - 1, y + 6, x + 2, y + 7, 'yellowD')
+        fx['glow'].append((x, y + 4))

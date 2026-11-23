@@ -81,7 +81,7 @@ export function RoomCanvas({ state, onWorld, onPick, cast, lines }: {
       const ctx = cv.getContext('2d')!;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, iw, ih);
-      r.compositeFit(ctx, world, iw, ih, actors());
+      r.compositeFit(ctx, world, iw, ih, actors(), reduce ? -1 : sim ? sim.now : performance.now() / 1000);
       if (sim) {
         const k = cssW / L.W;
         // 말풍선은 화면 밖으로 나가지 않게 가운데 쪽으로 당기고, 꼬리만 말하는 사람 위에 둔다

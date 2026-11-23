@@ -31,6 +31,8 @@ export interface ArtLevel {
   cap: number;
   /** shape: 이 모양일 때만 쓰는 조명 범위 */
   lights: { id: ItemId; x: number; y: number; rx: number; ry: number; shape?: string }[];
+  /** 움직이는 효과 자리: 샹들리에 모양별 불빛(glow)·유리구슬 끝(sparkle) */
+  fx?: { pendant?: Record<string, { glow: [number, number][]; sparkle: [number, number][] }> };
   /** 캐릭터가 걷는 바닥(발 위치 다각형)·물건 자리·들를 곳 */
   walk?: { poly: [number, number][]; blocks: [number, number, number, number][];
     poi: { kind: 'sofa' | 'plant' | 'window' | 'shelf'; x: number; y: number; face: 'front' | 'back' | 'left' | 'right' }[] };
