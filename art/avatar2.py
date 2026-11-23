@@ -208,7 +208,7 @@ def _bob(im, dy, cut):
     for k in range(dy): out.alpha_composite(row, (0, cut - 1 - k))
     return out
 
-NOSE = [(24, 14), (24, 15), (24, 16), (25, 15), (25, 16)]   # 둥근 코: 얼굴 앞선에서 2px
+NOSE = [(25, 15)]   # 코: 얼굴 윤곽선에서 검은 선 한 줄만 앞으로(살색은 그대로)
 
 def side(hair, outfit, breath=0, frame=None, talk=False, hc=HC):
     HB, HD, HL = hc; O = OUTDEF[outfit]; T, TS = O['top']; BC, BS = O['bc']
@@ -251,13 +251,12 @@ def side(hair, outfit, breath=0, frame=None, talk=False, hc=HC):
     # ---- 머리(앞모습과 같은 원) + 얼굴 ----
     side_head(p, hair, HB, HD, HL)
     if STYLE.get(hair, {}).get('tail'): p.R(2, 6, 5, 9, 'red'); p.P(2, 8, 'redD')   # 머리끈은 머리 위에
-    for (x, y) in NOSE: p.P(x, y, 'skin')                              # 코(얼굴 앞선에서 살짝 튀어나옴)
-    p.P(NOSE[-1][0] - 1, NOSE[-1][1] + 1, 'skinD')
     p.R(18, 14, 20, 17, 'O'); p.P(19, 14, 'white')                    # 눈(앞모습과 같은 높이·크기)
     p.R(16, 18, 19, 19, 'pink')
     if talk: p.R(20, 19, 22, 21, 'redD'); p.P(20, 20, 'O')
     else: p.R(20, 20, 22, 21, 'redD')
     p.outline()
+    for (x, y) in NOSE: p.P(x, y, 'O')
     return _bob(p.im, bob, 33 + OFF)
 
 # ======================================================================
