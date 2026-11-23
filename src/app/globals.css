@@ -206,3 +206,11 @@ a.btn.primary { color: var(--pri-ink); }
 .badge { display: inline-block; font: 700 12px/1 var(--pixel); color: var(--pri-ink); background: var(--pri); border-radius: 999px; padding: 5px 10px; margin-bottom: 6px; }
 .badge.sm { font-size: 11px; padding: 3px 7px; margin: 0 0 0 6px; vertical-align: 2px; }
 .titlecard { display: grid; justify-items: center; }
+
+.styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.style { display: grid; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); cursor: pointer; color: var(--ink); }
+.style img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; image-rendering: pixelated; border-radius: 6px; }
+.style .autoth { display: grid; place-items: center; aspect-ratio: 4 / 3; border-radius: 6px; background: var(--bg); font: 700 14px var(--pixel); color: var(--muted); border: 1px dashed var(--line); }
+.style small { font-size: 12px; color: var(--muted); }
+.style[aria-pressed="true"] { border: 2px solid var(--pri); background: #fff; }
+.style[aria-pressed="true"] small { color: var(--pri); font-weight: 700; }

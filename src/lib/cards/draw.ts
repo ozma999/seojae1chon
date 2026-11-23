@@ -3,7 +3,7 @@
 import type { LibraryEntry, Profile } from '../data/types';
 import type { RoomBook, RoomState, Tod } from '../room/types';
 import { createRenderer, drawCover } from '../room/render';
-import { GENRE_NAME, autoTheme, bragList, bragTopGenre } from '../room/logic';
+import { GENRE_NAME, autoTheme, bragList, bragTopGenre, pickedTheme } from '../room/logic';
 import { shelfTitle, towerInfo } from '../room/stats';
 import { wrapChars } from './text';
 import { hm, sunTimes } from '../room/time';
@@ -60,7 +60,7 @@ export async function drawCard(d: CardData): Promise<HTMLCanvasElement> {
   c.font = PX(30); c.fillStyle = C.pri; c.textAlign = 'right'; c.fillText(CARD_NAMES[d.type], W - M, H - 92); c.textAlign = 'left';
 
   // 방 스냅샷(현재 단계, 지금 시간대)
-  const state: RoomState = { books: d.books, itemsOff: d.profile.itemsOff, hair: d.profile.hair, outfit: d.profile.outfit, theme: null, tod: d.tod, picks: d.profile.picks };
+  const state: RoomState = { books: d.books, itemsOff: d.profile.itemsOff, hair: d.profile.hair, outfit: d.profile.outfit, theme: pickedTheme(d.profile.picks), tod: d.tod, picks: d.profile.picks };
   const world = d.renderer.renderWorld(state);
   const roomAt = (x: number, y: number, w: number) => {
     const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = Math.round(world.level.H * (w / world.level.W));
@@ -150,7 +150,7 @@ export async function drawCard(d: CardData): Promise<HTMLCanvasElement> {
   }
   if (d.type === 'interior') {
     label('인테리어', 300);
-    const theme = d.renderer.art.themes[autoTheme(d.books)];
+    const theme = d.renderer.art.themes[pickedTheme(d.profile.picks) ?? autoTheme(d.books)];
     const g = bragTopGenre(d.books);
     c.fillStyle = C.ink; c.font = PX(120); c.fillText(theme.name, M, 450);
     c.fillStyle = C.muted; c.font = SANS(40);

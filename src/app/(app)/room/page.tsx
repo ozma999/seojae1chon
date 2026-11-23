@@ -7,7 +7,7 @@ import { BookSheet } from '@/components/BookSheet';
 import { useLibrary } from '@/components/LibraryProvider';
 import type { World } from '@/lib/room/render';
 import type { RoomState, Tod } from '@/lib/room/types';
-import { nextItem, GENRE_NAME, bragTopGenre } from '@/lib/room/logic';
+import { nextItem, GENRE_NAME, bragTopGenre, pickedTheme } from '@/lib/room/logic';
 import { autoTod, hm, sunTimes } from '@/lib/room/time';
 import { demoFill, demoReset } from '@/lib/data/demo';
 import { useClock } from '@/hooks/useClock';
@@ -33,7 +33,7 @@ export default function RoomPage() {
   const now = useClock();
   const autoT = now ? autoTod(now) : '낮';
   const state: RoomState | null = useMemo(() => profile && {
-    books: roomBooks, itemsOff: profile.itemsOff, hair: profile.hair, outfit: profile.outfit, theme: null, tod: tod ?? autoT, picks: profile.picks,
+    books: roomBooks, itemsOff: profile.itemsOff, hair: profile.hair, outfit: profile.outfit, theme: pickedTheme(profile.picks), tod: tod ?? autoT, picks: profile.picks,
   }, [profile, roomBooks, tod, autoT]);
 
   // 새 아이템·방 확장 알림
@@ -79,7 +79,7 @@ export default function RoomPage() {
         ) : <p className="next">모든 서재 아이템을 모았어요</p>}
         {world && world.overflow > 0 && <p className="muted">책장에 다 못 꽂은 {world.overflow.toLocaleString()}권은 보관함에 있어요.</p>}
         {world && art && (
-          <p className="muted">테마 <b>{art.themes[world.theme].name}</b> · {top ? `자랑 책장의 ${GENRE_NAME[top]} 책이 고른 방` : '자랑 책장이 비어 기본 테마'}</p>
+          <p className="muted">테마 <b>{art.themes[world.theme].name}</b> · {pickedTheme(profile!.picks) ? '꾸미기에서 고른 스타일' : top ? `자랑 책장의 ${GENRE_NAME[top]} 책이 고른 방` : '자랑 책장이 비어 기본 테마'} · <Link href="/decorate#style">바꾸기</Link></p>
         )}
         <div className="chiprow" role="group" aria-label="방의 시간">
           <button className="chip" aria-pressed={tod === null} onClick={() => setTod(null)}>휴대폰 시각 {hm(now)} · {autoT}</button>

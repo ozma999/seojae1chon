@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLibrary } from '@/components/LibraryProvider';
 import { getRenderer, type Renderer } from '@/components/RoomCanvas';
-import { HAIR_TH, OUTFIT_TH, pickedVar } from '@/lib/room/logic';
+import { HAIR_TH, OUTFIT_TH, pickedTheme, pickedVar } from '@/lib/room/logic';
 import type { ItemId } from '@/lib/room/types';
 
 /** 꾸미기: 서재 아이템 켜고 끄기 → 머리 → 옷 → 서재 이름 */
@@ -19,6 +19,19 @@ export default function DecoratePage() {
   return (
     <div className="pad">
       <h1 className="h">꾸미기</h1>
+      <h2 className="sub" id="style">방 스타일</h2>
+      <div className="styles" role="group" aria-label="방 스타일">
+        {([null, 'attic', 'space', 'manga', 'study'] as const).map((k) => {
+          const cur = pickedTheme(profile.picks), th = k ? r.art.themes[k] : null;
+          return (
+            <button key={k ?? 'auto'} className="style" aria-pressed={cur === k} onClick={() => save({ picks: { ...profile.picks, theme: k ?? '' } })}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- 작은 픽셀 미리보기 */}
+              {k ? <img className="pix" src={`/art/${r.art.levels[1].bg[k]}`} alt="" /> : <span className="autoth">자동</span>}
+              <small>{th ? `${th.name} · ${th.scene}` : '자랑 책장 따라'}</small>
+            </button>
+          );
+        })}
+      </div>
       <h2 className="sub">서재 아이템</h2>
       <ul className="items">
         {r.art.itemdefs.map((d) => {

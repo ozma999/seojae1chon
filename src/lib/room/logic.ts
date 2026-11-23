@@ -87,6 +87,11 @@ export function pickedVar(art: ArtManifest, id: ItemId, picks?: Record<string, s
   const p = picks?.[id];
   return vs.some((v) => v.key === p) ? (p as string) : vs[0].key;
 }
+/** 꾸미기에서 고른 방 스타일(없으면 null = 자랑 책장 장르로 자동) */
+export function pickedTheme(picks?: Record<string, string | number>): ThemeKey | null {
+  const t = picks?.theme;
+  return t === 'attic' || t === 'space' || t === 'manga' || t === 'study' ? t : null;
+}
 export const nextItem = (art: ArtManifest, n: number) => art.itemdefs.find((d) => d.th > n) ?? null;
 
 export const HAIR_TH = [0, 0, 10, 30, 80, 120, 200, 300];

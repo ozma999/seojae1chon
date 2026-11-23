@@ -192,7 +192,7 @@ def L1(theme='attic'):
        'rug':[F_(lambda:rug(s,144,199,56,13),0)],
        'pile':[F_(lambda:pile(s,40,194,[(24,BOOKS[2],0),(20,BOOKS[6],3),(23,BOOKS[9],-1),(17,BOOKS[3],4)]),194)],
        'plant':[W_(lambda:pot_plant(s,240,52))],
-       'lamp':[F_(lambda:floorlamp(s,266,104,186),189)],
+       'lamp':[F_(lambda:floorlamp(s,266,122,186),189)],
        'deco':[W_(lambda:postcard(s,108,104)),W_(lambda:side_frame(s))],
        'chair':[F_(lambda:armchair(s,190,198),198),F_(lambda:sidetable(s,240,194),194)],
        'pendant':[W_(lambda:pendant(s,144,0,12))],
@@ -212,10 +212,10 @@ def L2(theme='attic'):
     t4,b4=s.shelf(306,22,354,[44,66,88,110,132,154],dep=10)
     for i,yb in enumerate([44,66,88,110,132,154,b4]): s.fill(310,351,yb,18,70+i)
     items={'desklamp':[F_(lambda:banker_lamp(s,110,236),236)],
-       'rug':[F_(lambda:rug(s,192,258,74,16),0)],
+       'rug':[F_(lambda:rug(s,192,258,86,18),0)],
        'pile':[F_(lambda:pile(s,116,262,[(20,BOOKS[2],0),(18,BOOKS[9],2),(16,BOOKS[0],1)]),262)],
-       'plant':[F_(lambda:pot_plant(s,338,276),276)],
-       'lamp':[F_(lambda:floorlamp(s,320,170,258),261)],
+       'plant':[F_(lambda:pot_plant(s,338,276,True),276)],
+       'lamp':[F_(lambda:floorlamp(s,320,194,258),261)],
        'deco':[W_(lambda:postcard(s,170,104)),W_(lambda:frame(s,192,104,22,16))],
        'chair':[F_(lambda:armchair(s,40,264),264),F_(lambda:sidetable(s,90,260),260)],
        'pendant':[W_(lambda:pendant(s,192,0,14))],
@@ -241,7 +241,7 @@ def L3(theme='attic'):
     s.side_shelf('L',8,74,268,rowsY,301);s.side_shelf('R',503,74,268,rowsY,302)
     side_win(s,'L',38,16,28,62);side_win(s,'R',474,496,28,62)
     items={'desklamp':[F_(lambda:banker_lamp(s,174,300),300)],
-       'rug':[F_(lambda:rug(s,268,334,104,20),0)],
+       'rug':[F_(lambda:rug(s,268,336,132,25),0)],
        'pile':[F_(lambda:pile(s,170,352,[(26,BOOKS[2],0),(22,BOOKS[6],3),(24,BOOKS[9],-1),(18,BOOKS[3],4)]),352),
                F_(lambda:pile(s,392,336,[(24,BOOKS[5],0),(20,BOOKS[7],2),(22,BOOKS[4],-2)]),336)],
        'plant':[F_(lambda:pot_plant(s,452,332,True),332)],
@@ -287,7 +287,7 @@ def L4(theme='attic'):
     s.side_shelf('L',10,226,404,[226+22*k for k in range(1,8)],403);s.side_shelf('R',758,226,404,[226+22*k for k in range(1,8)],404)
     stairs(s,railing)
     items={'desklamp':[F_(lambda:banker_lamp(s,198,444),444)],
-       'rug':[F_(lambda:rug(s,404,478,160,32),0)],
+       'rug':[F_(lambda:rug(s,404,482,214,40),0)],
        'pile':[F_(lambda:pile(s,250,502,[(26,BOOKS[2],0),(22,BOOKS[6],3),(24,BOOKS[9],-1),(18,BOOKS[3],4)]),502),
                F_(lambda:pile(s,600,522,[(24,BOOKS[5],0),(20,BOOKS[7],2),(22,BOOKS[4],-2)]),522)],
        'plant':[F_(lambda:pot_plant(s,40,522,True),522),F_(lambda:pot_plant(s,700,542,True),542)],
@@ -303,8 +303,8 @@ def L4(theme='attic'):
 LEVELS=[L1,L2,L3,L4]
 # 저녁·밤·새벽에 켜지는 조명이 밝히는 범위(타원 중심 x,y와 반지름). 아이템이 켜져 있을 때만 적용.
 LIGHTS=[
- [dict(id='desklamp',x=109,y=180,rx=58,ry=52),dict(id='pendant',x=144,y=118,rx=96,ry=96),dict(id='lamp',x=267,y=150,rx=40,ry=52)],
- [dict(id='desklamp',x=119,y=230,rx=62,ry=56),dict(id='pendant',x=192,y=160,rx=128,ry=124),dict(id='lamp',x=321,y=214,rx=46,ry=58)],
+ [dict(id='desklamp',x=109,y=180,rx=58,ry=52),dict(id='pendant',x=144,y=118,rx=96,ry=96),dict(id='lamp',x=267,y=158,rx=40,ry=52)],
+ [dict(id='desklamp',x=119,y=230,rx=62,ry=56),dict(id='pendant',x=192,y=160,rx=128,ry=124),dict(id='lamp',x=321,y=226,rx=46,ry=58)],
  [dict(id='desklamp',x=183,y=294,rx=70,ry=62),dict(id='pendant',x=256,y=214,rx=160,ry=170),dict(id='lamp',x=77,y=288,rx=52,ry=60)],
  [dict(id='desklamp',x=207,y=438,rx=80,ry=70),dict(id='pendant',x=384,y=330,rx=240,ry=250),dict(id='lamp',x=607,y=442,rx=62,ry=66)]]
 NAMES=['클로즈업','방','큰 서재','복층 서재']

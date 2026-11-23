@@ -16,7 +16,7 @@ const entryOf = (b: BookInfo, method: AddMethod, extra: Partial<LibraryEntry> = 
 function seed(empty: boolean): Saved {
   const t = Date.now();
   return {
-    profile: { id: 'demo', roomName: '나의 서재', hair: 0, outfit: 0, itemsOff: [] },
+    profile: { id: 'demo', roomName: '나의 서재', hair: 1, outfit: 0, itemsOff: [] },
     entries: empty ? [] : DEMO_CATALOG.filter((b) => b.own).map((b, i) =>
       entryOf(b, 'barcode', { comment: b.comment, bragAt: b.brag ? t + i : null, addedAt: t - i })),
   };
