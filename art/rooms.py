@@ -169,7 +169,7 @@ def side_win(s,side,x_a,x_b,Ya,Yb):
     s.line((x_a,s.sidey(x_a,(Ya+Yb)/2,side)),(x_b,s.sidey(x_b,(Ya+Yb)/2,side)),'wood')
 
 ITEMS=[('desklamp',0,'기본 스탠드'),('rug',10,'러그'),('pile',30,'책 더미'),('plant',50,'화분'),('lamp',100,'스탠드 조명'),('deco',150,'액자와 엽서'),
-       ('chair',200,'1인 소파와 테이블'),('pendant',300,'펜던트 조명'),('valance',500,'창 커튼'),('ladder',700,'사다리'),
+       ('chair',200,'1인 소파와 테이블'),('pendant',300,'샹들리에'),('valance',500,'창 커튼'),('ladder',700,'사다리'),
        ('globe',1000,'지구본'),('cushion',1500,'창가 쿠션')]
 
 # ---------- 꾸미기 선택지(variants.py): 같은 자리에 모양·색만 바꿔 그린다 ----------
@@ -195,7 +195,7 @@ def L1(theme='attic'):
        'lamp':[F_(lambda:floorlamp(s,266,122,186),189)],
        'deco':[W_(lambda:postcard(s,108,104)),W_(lambda:side_frame(s))],
        'chair':[F_(lambda:armchair(s,190,198),198),F_(lambda:sidetable(s,240,194),194)],
-       'pendant':[W_(lambda:pendant(s,144,0,12))],
+       'pendant':[W_(lambda:variants.chandelier(s,144,0,10,36))],
        'valance':[W_(lambda:valance(s,120,168,24))],
        'globe':[F_(lambda:globe(s,72,190),190)]}
     return s,items,(144,205)
@@ -218,7 +218,7 @@ def L2(theme='attic'):
        'lamp':[F_(lambda:floorlamp(s,320,194,258),261)],
        'deco':[W_(lambda:postcard(s,170,104)),W_(lambda:frame(s,192,104,22,16))],
        'chair':[F_(lambda:armchair(s,40,264),264),F_(lambda:sidetable(s,90,260),260)],
-       'pendant':[W_(lambda:pendant(s,192,0,14))],
+       'pendant':[W_(lambda:variants.chandelier(s,192,0,14,48))],
        'valance':[W_(lambda:valance(s,168,216,26))],
        'globe':[F_(lambda:globe(s,270,262),262)]}
     return s,items,(192,268)
@@ -248,7 +248,7 @@ def L3(theme='attic'):
        'lamp':[F_(lambda:floorlamp(s,76,256,320),323)],
        'deco':[W_(lambda:postcard(s,236,182))],
        'chair':[F_(lambda:armchair(s,96,320),320),F_(lambda:sidetable(s,146,318),318)],
-       'pendant':[W_(lambda:pendant(s,256,0,14))],
+       'pendant':[W_(lambda:variants.chandelier(s,256,0,20,68))],
        'valance':[W_(lambda:valance(s,232,280,46))],
        'globe':[F_(lambda:globe(s,412,316),316)],
        'ladder':[W_(lambda:ladder(s,196,30,266))],
@@ -294,7 +294,7 @@ def L4(theme='attic'):
        'lamp':[F_(lambda:floorlamp(s,606,410,474),477)],
        'deco':[W_(lambda:postcard(s,354,358))],
        'chair':[F_(lambda:armchair(s,520,472),472),F_(lambda:sidetable(s,570,470),470)],
-       'pendant':[W_(lambda:pendant(s,384,0,22))],
+       'pendant':[W_(lambda:variants.chandelier(s,384,0,26,92))],
        'valance':[W_(lambda:valance(s,346,422,36))],
        'globe':[F_(lambda:globe(s,660,466),466)],
        'ladder':[W_(lambda:rail_ladder(s,446,694,32,560,204,0.15,rail=railing))],

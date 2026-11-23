@@ -10,6 +10,7 @@ SHAPES = {
     'plant': [('a', '무성한 화분'), ('b', '선인장'), ('c', '산세베리아')],
     'chair': [('a', '1인 소파'), ('b', '높은 등받이 의자'), ('c', '빈백')],
     'lamp':  [('a', '갓 스탠드'), ('b', '아치형 스탠드'), ('c', '삼각대 스탠드')],
+    'pendant': [('a', '촛대 샹들리에'), ('b', '크리스탈 샹들리에'), ('c', '링 샹들리에')],
 }
 COLORS = {
     'rug':   [('파랑', 'blue', 'navy'), ('빨강', 'red', 'redD'), ('초록', 'green', 'greenD')],
@@ -159,3 +160,57 @@ def defs(iid):
     return out
 # 아치형 스탠드는 갓이 왼쪽으로 25px 나가 있다 → 조명 중심도 옮긴다
 LIGHT_SHIFT = {'lamp': {'a': (0, 0), 'b': (-24, 4), 'c': (0, 0)}}
+
+
+# ---------- 샹들리에(300권 보상, 아이템 id는 예전 이름 pendant 그대로) ----------
+def chandelier(s, cx, y0, y1, w):
+    """천장(y0)에서 사슬로 y1까지 내려와 폭 w로 펼쳐진다. 방이 클수록 w가 크다"""
+    shp, _ = cur('pendant')
+    for y in range(y0, y1):                                           # 사슬(한 칸씩 엇갈림)
+        s.P(cx + (y % 2), y, 'O'); s.P(cx + 1 - (y % 2), y, 'yellowD')
+    s.R(cx - 3, y0, cx + 5, y0 + 2, 'yellowD'); s.R(cx - 3, y0, cx + 5, y0 + 1, 'O')     # 천장 받침
+    h = max(10, w // 2)
+    if shp == 'a':                                                    # 촛대형: 둥근 팔 + 촛불
+        s.R(cx - 1, y1, cx + 3, y1 + h - 2, 'yellowD'); s.R(cx, y1, cx + 1, y1 + h - 2, 'yellow')
+        s.d.ellipse([cx - 3, y1 + h - 6, cx + 5, y1 + h + 1], fill=K['yellowD'], outline=K['O'])
+        n = 5 if w < 40 else 7
+        ay = y1 + h // 2 + 2
+        s.d.arc([cx - w // 2, ay - h // 2, cx + w // 2 + 1, ay + h // 3], 10, 170, fill=K['O'], width=2)
+        s.d.arc([cx - w // 2 + 1, ay - h // 2, cx + w // 2, ay + h // 3 - 1], 10, 170, fill=K['yellow'], width=1)
+        for i in range(n):
+            a = math.pi * (0.06 + 0.88 * i / (n - 1))
+            x = round(cx + 0.5 + math.cos(a) * w / 2 * 0.98); y = round(ay - h / 12 + math.sin(a) * h / 3 * 0.95)
+            s.R(x - 2, y - 1, x + 3, y + 1, 'yellowD'); s.R(x - 2, y - 2, x + 3, y - 1, 'O')       # 받침 접시
+            ch = 4 if w < 40 else 6
+            s.R(x - 1, y - 2 - ch, x + 2, y - 2, 'white'); s.R(x + 1, y - 2 - ch, x + 2, y - 2, 'wallS')   # 초
+            s.P(x, y - 3 - ch, 'yellow'); s.P(x, y - 4 - ch, 'orange'); s.P(x, y - 5 - ch, 'yellow')     # 불꽃
+        s.P(cx, y1 + h + 2, 'yellowD'); s.P(cx + 1, y1 + h + 2, 'yellowD'); s.P(cx, y1 + h + 3, 'yellow')
+        return
+    if shp == 'b':                                                    # 크리스탈: 겹겹이 매달린 유리구슬
+        s.R(cx - w // 4, y1, cx + w // 4 + 2, y1 + 2, 'yellowD'); s.R(cx - w // 4, y1, cx + w // 4 + 2, y1 + 1, 'O')
+        tiers = 3 if w < 40 else 4
+        s.R(cx, y1, cx + 2, y1 + h + 4, 'yellowD')                    # 가운데 놋쇠 기둥
+        for k in range(tiers):
+            ty = y1 + 3 + k * (h // tiers + 1)
+            hw = round(w / 2 * (1 - 0.18 * k))
+            for x in range(cx - hw + 1, cx + hw + 1, 3):               # 유리구슬 줄(2칸 폭, 진한 테두리)
+                ln = 3 + ((x * 7 + k) % 3)
+                s.R(x - 1, ty + 1, x + 2, ty + 2 + ln, 'seaD')
+                s.R(x, ty + 1, x + 1, ty + 1 + ln, 'skyL'); s.P(x, ty + ln, 'white'); s.P(x + 1, ty + 1, 'sky')
+            s.R(cx - hw - 1, ty - 1, cx + hw + 3, ty + 2, 'O'); s.R(cx - hw, ty, cx + hw + 2, ty + 1, 'yellow')   # 놋쇠 고리
+        by = y1 + 3 + tiers * (h // tiers + 1)
+        s.R(cx - 1, by, cx + 3, by + 6, 'seaD'); s.R(cx, by, cx + 2, by + 5, 'skyL'); s.P(cx, by + 4, 'white'); s.P(cx + 1, by + 1, 'sky')
+        for (dx, dy) in ((-w // 3, 4), (w // 3, 6), (0, h // 2)): s.P(cx + dx, y1 + dy, 'white')   # 반짝
+        return
+    # 링: 놋쇠 고리 + 전구
+    ry = max(3, w // 7); rcy = y1 + h // 2
+    for dx in (-w // 2 + 2, 0, w // 2 - 1):                          # 매다는 줄 3가닥
+        s.line((cx, y1), (cx + dx, rcy - ry + 1), 'greyD')
+    s.d.ellipse([cx - w // 2, rcy - ry, cx + w // 2 + 1, rcy + ry], outline=K['O'], width=3)
+    s.d.ellipse([cx - w // 2 + 1, rcy - ry + 1, cx + w // 2, rcy + ry - 1], outline=K['yellow'], width=1)
+    n = 6 if w < 40 else 9
+    for i in range(n):
+        a = math.pi * (0.1 + 0.8 * i / (n - 1))
+        x = round(cx + math.cos(a) * w / 2); y = round(rcy + math.sin(a) * ry)
+        s.R(x, y, x + 1, y + 3, 'O')
+        s.R(x - 1, y + 3, x + 2, y + 6, 'cream'); s.P(x, y + 4, 'white'); s.R(x - 1, y + 6, x + 2, y + 7, 'yellowD')
