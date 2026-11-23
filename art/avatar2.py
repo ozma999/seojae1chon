@@ -2,9 +2,10 @@
 #
 # 구조(새 머리·옷을 늘리기 쉽게):
 #   - 앞모습은 avatar9.make() 그대로(지금 서재의 캐릭터와 같은 그림)
-#   - 뒷모습·옆모습은 이 파일의 HAIR_BACK / HAIR_SIDE (머리), avatar9.OUTDEF (옷 정의) 를 쓴다
+#   - 뒷모습·옆모습의 머리 윤곽은 앞모습 그림에서 뽑아 쓴다(head_shape) → 세 방향 실루엣이 항상 같다
+#     머리마다 다른 점(앞머리 높이·귀·꼬리)은 STYLE 표, 옷은 avatar9.OUTDEF
 #   - 걷기 다리·앉기·말하기는 모든 머리·옷에 공통으로 적용된다
-# 새 머리 추가: avatar9.make 의 앞머리 분기 + HAIR_BACK[키] + HAIR_SIDE[키]
+# 새 머리 추가: avatar9.make 의 앞머리 분기 + STYLE[키] 한 줄 (꼬리처럼 특별하면 back_head/side_tail 에 몇 줄)
 # 새 옷 추가:   avatar9.OUTDEF[키] (+ 특별 꾸밈이면 make / _torso_back / _torso_side 에 한 줄)
 import math
 from PIL import Image, ImageDraw
@@ -45,50 +46,37 @@ class Pen:
                     a[x, y] = K['O'] + (255,)
 
 
-# ---- 모든 방향이 같은 머리 원(앞모습의 머리 윤곽과 같은 크기) ----
-HEAD = [2, 0, 25, 22]
-def head_mask():
-    m = Image.new('L', (W, 23), 0); ImageDraw.Draw(m).ellipse(HEAD, fill=255)
-    return m
-_HM = head_mask()
-def in_head(x, y): return 0 <= y < 23 and 0 <= x < W and _HM.getpixel((x, y)) > 0
+# ---- 머리 윤곽은 앞모습에서 그대로 가져온다(앞·뒤·옆이 같은 실루엣) ----
+# 앞모습 얼굴 영역(avatar9 rowsF와 같은 값)
+FACE_ROWS = {4: (9, 19), 5: (7, 21), 6: (6, 22), 7: (5, 23), 20: (5, 23), 21: (6, 22), 22: (8, 20)}
+for _y in range(8, 20): FACE_ROWS[_y] = (4, 24)
+def in_face(x, y): return y in FACE_ROWS and FACE_ROWS[y][0] <= x < FACE_ROWS[y][1]
+_MARK = ('purple', 'seaD', 'sky')     # 머리카락만 골라내려고 잠깐 쓰는 표시색
+_cache = {}
+def head_shape(hair):
+    """(머리카락 칸, 머리끈 칸, 귀 칸) — 앞모습 그림에서 뽑는다"""
+    if hair in _cache: return _cache[hair]
+    im = avatar9.make(hair, 'basic', _MARK); px = im.load()
+    marks = {K[c] + (255,) for c in _MARK}
+    hairm, tie, ears = set(), set(), set()
+    for y in range(-OFF, 40):
+        for x in range(W):
+            c = px[x, y + OFF]
+            if c in marks: hairm.add((x, y))
+            elif c == K['red'] + (255,) and y < 12: tie.add((x, y))
+            elif c in (K['skin'] + (255,), K['skinD'] + (255,)) and 12 <= y <= 16 and (x <= 2 or x >= 25): ears.add((x, y))
+    _cache[hair] = (hairm, tie, ears)
+    return _cache[hair]
+def head_mask(hair):
+    hairm, tie, ears = head_shape(hair)
+    face = {(x, y) for y, (a, z) in FACE_ROWS.items() for x in range(a, z)}
+    return hairm | tie | face
 
-# ======================================================================
-# 뒷모습
-# ======================================================================
-def _hair_back_cap(p, HB, HD, HL):
-    p.E(HEAD, HB)
-    for x, y0 in ((8, 6), (13, 4), (18, 6)): p.R(x, y0, x + 1, y0 + 8, HD)     # 머리결(짧게 3줄)
-    for x, y in [(8, 2), (9, 2), (10, 1), (11, 1), (12, 1), (7, 3)]: p.P(x, y, HL)
-def _below(p, HB, HD, y1, inset=1):
-    """머리 원 아래로 늘어지는 머리(둥근 끝). 원 폭을 넘지 않는다"""
-    for y in range(16, y1):
-        a, z = 3 + inset, 25 - inset
-        if y >= y1 - 2: a += 1; z -= 1
-        p.R(a, y, z, y + 1, HB)
-    p.R(4 + inset, y1 - 1, 24 - inset, y1, HD)
-def hb_m_basic(p, HB, HD, HL): _hair_back_cap(p, HB, HD, HL)
-def hb_crop(p, HB, HD, HL):    _hair_back_cap(p, HB, HD, HL)
-def hb_side(p, HB, HD, HL):    _hair_back_cap(p, HB, HD, HL)
-def hb_f_bob(p, HB, HD, HL):   _below(p, HB, HD, 25, 0); _hair_back_cap(p, HB, HD, HL)
-def hb_long(p, HB, HD, HL):
-    _below(p, HB, HD, 33, 0); _hair_back_cap(p, HB, HD, HL)
-    for x in (7, 20): p.R(x, 20, x + 1, 31, HD)
-def hb_pony(p, HB, HD, HL):
-    _hair_back_cap(p, HB, HD, HL)
-    for y in range(9, 28):                                          # 꼬리(가운데로 늘어짐)
-        w = 6 if y < 14 else 5 if y < 22 else 4 if y < 25 else 2
-        x0 = 14 - w // 2; p.R(x0, y, x0 + w, y + 1, HB); p.P(x0, y, HD); p.P(x0 + w - 1, y, HD)
-    p.R(14, 11, 15, 24, HL)
-    p.R(11, 7, 17, 9, 'red'); p.P(11, 8, 'redD')
-def hb_curly(p, HB, HD, HL):
-    p.E(HEAD, HB)
-    for cx, cy in [(5, 5), (9, 3), (14, 2), (19, 3), (23, 5), (4, 11), (24, 11), (6, 16), (22, 16), (10, 17), (14, 18), (18, 17), (9, 10), (14, 9), (19, 10)]:
-        p.E([cx - 3, cy - 3, cx + 3, cy + 3], HB); p.P(cx - 1, cy + 2, HD); p.P(cx, cy + 2, HD); p.P(cx - 1, cy - 2, HL)
-def hb_bun(p, HB, HD, HL):
-    _hair_back_cap(p, HB, HD, HL)
-    p.E([9, -5, 18, 3], HB); p.P(11, -3, HL); p.P(12, -4, HL); p.R(11, 2, 17, 3, 'red')
-HAIR_BACK = dict(m_basic=hb_m_basic, f_bob=hb_f_bob, crop=hb_crop, side=hb_side, long=hb_long, pony=hb_pony, curly=hb_curly, bun=hb_bun)
+# 머리마다 옆·뒤에서 다른 점: 앞머리 아랫선 높이, 귀가 보이는지, 꼬리
+STYLE = dict(m_basic=dict(fringe=10, ear=True), crop=dict(fringe=9, ear=True), side=dict(fringe=11, ear=True),
+             f_bob=dict(fringe=11, ear=False), long=dict(fringe=11, ear=False), pony=dict(fringe=10, ear=True, tail=True),
+             curly=dict(fringe=10, ear=False, curls=True), bun=dict(fringe=11, ear=True))
+CURLS = [(5, 5), (9, 2), (14, 1), (19, 2), (23, 5), (3, 10), (24, 10), (7, 8), (12, 7), (17, 7), (21, 8)]
 
 def _torso(p, O, oy, back):
     """앞·뒤 공통 몸통(뒤는 깃·단추 같은 앞 꾸밈 없이)"""
@@ -133,71 +121,78 @@ def _legs_front(p, O, oy, outfit):
     shoe = 'redD' if outfit == 'dress' else 'O'
     p.R(9, 40, 13, 42, shoe); p.R(15, 40, 19, 42, shoe)
 
+def back_head(p, hair, HB, HD, HL):
+    st = STYLE.get(hair, {}); hairm, tie, ears = head_shape(hair)
+    for (x, y) in ears: p.P(x, y, 'skin')
+    m = head_mask(hair) - tie
+    if st.get('tail'):   # 앞모습 오른쪽에 보이던 꼬리는 빼고, 뒤에서는 가운데로 늘어진다
+        m = {(x, y) for (x, y) in m if not (x >= 24 and y >= 8)}
+    for (x, y) in m: p.P(x, y, HB)
+    lowest = max(y for _, y in m)
+    for x, y0 in ((8, 5), (13, 3), (18, 5)):                         # 머리결 3줄
+        for y in range(y0, min(y0 + 9, lowest - 1)):
+            if (x, y) in m: p.P(x, y, HD)
+    for x in range(W):                                                # 머리끝 그늘
+        if (x, lowest) in m: p.P(x, lowest, HD)
+    for x, y in [(8, 2), (9, 1), (10, 1), (11, 0), (12, 0), (7, 3)]:
+        if (x, y) in m: p.P(x, y, HL)
+    if st.get('curls'):
+        for cx, cy in CURLS + [(8, 14), (14, 15), (20, 14), (11, 19), (17, 19)]:
+            p.E([cx - 2, cy - 2, cx + 2, cy + 2], HB); p.P(cx - 1, cy + 2, HD); p.P(cx, cy + 2, HD); p.P(cx - 1, cy - 1, HL)
+    if st.get('tail'):
+        for y in range(9, 28):
+            w = 6 if y < 14 else 5 if y < 22 else 4 if y < 25 else 2
+            x0 = 14 - w // 2; p.R(x0, y, x0 + w, y + 1, HB); p.P(x0, y, HD); p.P(x0 + w - 1, y, HD)
+        p.R(14, 11, 15, 24, HL); p.R(11, 7, 17, 9, 'red'); p.P(11, 8, 'redD')
+    else:
+        for (x, y) in tie: p.P(x, y, 'red')
+
 def back(hair, outfit, breath=0, hc=HC):
     HB, HD, HL = hc; O = OUTDEF[outfit]; oy = breath + 1
     p = Pen()
-    # 목·귀
-    p.R(12, 18, 16, 22, 'skin'); p.R(12, 20, 16, 22, 'skinD')
-    for y in (13, 14, 15): p.P(2, y, 'skin'); p.P(25, y, 'skin')
+    p.R(12, 18, 16, 23, 'skin'); p.R(12, 21, 16, 23, 'skinD')         # 목덜미
     _torso(p, O, oy, True)
     _legs_front(p, O, oy, outfit)
-    HAIR_BACK[hair](p, HB, HD, HL)
+    back_head(p, hair, HB, HD, HL)
     p.outline()
     return p.im
 
 # ======================================================================
 # 옆모습(오른쪽을 본다. 왼쪽은 좌우 뒤집기)
 # ======================================================================
-# 옆얼굴: 머리 원 안의 오른쪽 아래가 얼굴. 앞머리 아랫선(fringe)과 뒷머리 경계(nape_x)만 머리마다 다르다
-def side_head(p, HB, HD, HL, fringe=9, nape_x=12, ear=True, curls=False):
-    # 머리카락-얼굴 경계: 이마 쪽은 살짝 앞, 귀 높이에서 가장 뒤, 턱은 앞으로 둥글게 말려 들어간다
-    def edge(y):
-        if y < 12: return nape_x + 2
-        if y < 18: return nape_x
-        return nape_x + (y - 17) * 2
-    p.E(HEAD, HB)
-    for y in range(0, 23):
-        for x in range(W):
-            if in_head(x, y) and x >= edge(y) and y >= fringe - (1 if x % 4 == 0 and y < fringe + 1 else 0):
-                p.P(x, y, 'skin')
-    for y in range(fringe, 23):                                       # 뺨·턱 경계 그늘
-        if in_head(edge(y), y): p.P(edge(y), y, 'skinD')
-    if ear: p.R(nape_x - 1, 13, nape_x + 2, 16, 'skin'); p.P(nape_x, 14, 'skinD'); p.P(nape_x - 1, 13, HD)
-    for x, y in [(8, 2), (9, 2), (10, 1), (11, 1), (12, 1), (7, 3)]: p.P(x, y, HL)
-    for x in range(nape_x, 24):                                       # 앞머리 끝 그늘
-        if in_head(x, fringe - 1): p.P(x, fringe - 1, HD)
-    if curls:
-        for cx, cy in [(5, 5), (9, 3), (14, 2), (19, 3), (5, 11), (6, 16), (9, 9), (15, 7)]:
-            p.E([cx - 3, cy - 3, cx + 3, cy + 3], HB); p.P(cx - 1, cy + 2, HD); p.P(cx, cy + 2, HD); p.P(cx - 1, cy - 2, HL)
-def hs_m_basic(p, HB, HD, HL, layer):
-    if layer == 'front': side_head(p, HB, HD, HL, 9, 12)
-def hs_crop(p, HB, HD, HL, layer):
-    if layer == 'front': side_head(p, HB, HD, HL, 8, 11)
-def hs_side(p, HB, HD, HL, layer):
-    if layer == 'front': side_head(p, HB, HD, HL, 10, 12)
-def hs_f_bob(p, HB, HD, HL, layer):
-    if layer == 'back':
-        for y in range(14, 25): p.R(3, y, 13 if y < 23 else 12, y + 1, HB)
-        p.R(4, 24, 12, 25, HD)
-    else: side_head(p, HB, HD, HL, 10, 13, ear=False); p.R(10, 12, 13, 22, HB); p.P(11, 21, HD)
-def hs_long(p, HB, HD, HL, layer):
-    if layer == 'back':
-        for y in range(14, 33): p.R(3, y, 13, y + 1, HB)
-        p.R(4, 32, 12, 33, HD); p.R(6, 18, 7, 31, HD)
-    else: side_head(p, HB, HD, HL, 10, 13, ear=False); p.R(10, 12, 13, 22, HB)
-def hs_pony(p, HB, HD, HL, layer):
-    if layer == 'back':
-        for y in range(7, 25):                                        # 뒤로 늘어진 꼬리
-            x0 = 0 if y < 18 else 1; w = 4 if y < 20 else 3
-            p.R(x0, y, x0 + w, y + 1, HB); p.P(x0, y, HD)
-    else:
-        side_head(p, HB, HD, HL, 9, 12); p.R(2, 6, 5, 9, 'red'); p.P(2, 8, 'redD')
-def hs_curly(p, HB, HD, HL, layer):
-    if layer == 'front': side_head(p, HB, HD, HL, 9, 12, ear=False, curls=True)
-def hs_bun(p, HB, HD, HL, layer):
-    if layer == 'front':
-        side_head(p, HB, HD, HL, 9, 12); p.E([5, -5, 13, 3], HB); p.P(7, -3, HL); p.R(8, 1, 12, 2, 'red')
-HAIR_SIDE = dict(m_basic=hs_m_basic, f_bob=hs_f_bob, crop=hs_crop, side=hs_side, long=hs_long, pony=hs_pony, curly=hs_curly, bun=hs_bun)
+# 옆얼굴: 앞모습 머리 윤곽 안에서, 얼굴 쪽(오른쪽) 아래만 살색. 얼굴 앞쪽 옆머리는 뺀다
+def side_edge(y, fringe):
+    """머리카락-얼굴 경계 x: 관자놀이(앞머리 바로 아래)는 조금 앞, 귀 높이에서 가장 뒤, 턱은 앞으로"""
+    if y < fringe + 2: return 14
+    if y < 18: return 12
+    return 12 + (y - 17)
+def side_head(p, hair, HB, HD, HL):
+    st = STYLE.get(hair, {}); fr = st.get('fringe', 10)
+    hairm, tie, ears = head_shape(hair)
+    m = head_mask(hair)
+    m = {(x, y) for (x, y) in m if not (x >= 14 and y >= fr and not in_face(x, y)) and not (x >= 24 and y >= 5 and not in_face(x, y))}
+    for (x, y) in m: p.P(x, y, HB)
+    for (x, y) in m:
+        if in_face(x, y) and y >= fr and x >= side_edge(y, fr): p.P(x, y, 'skin')
+    for y in range(fr, 23):                                           # 뺨 경계 그늘
+        e = side_edge(y, fr)
+        if (e, y) in m and in_face(e, y): p.P(e, y, 'skinD')
+    for x in range(14, 25):                                           # 앞머리 끝 그늘
+        if (x, fr - 1) in m: p.P(x, fr - 1, HD)
+    for x, y in [(8, 2), (9, 1), (10, 1), (11, 0), (12, 0), (7, 3)]:
+        if (x, y) in m: p.P(x, y, HL)
+    if st.get('ear'): p.R(11, 13, 14, 16, 'skin'); p.P(12, 14, 'skinD'); p.P(11, 13, HD)
+    if st.get('curls'):
+        for cx, cy in CURLS[:8] + [(6, 14), (9, 17)]:
+            p.E([cx - 2, cy - 2, cx + 2, cy + 2], HB); p.P(cx - 1, cy + 2, HD); p.P(cx, cy + 2, HD); p.P(cx - 1, cy - 1, HL)
+    if tie and not st.get('tail'):
+        for (x, y) in tie: p.P(x, y, 'red')
+def side_tail(p, hair, HB, HD, HL):
+    if not STYLE.get(hair, {}).get('tail'): return
+    for y in range(7, 25):
+        x0 = 0 if y < 18 else 1; w = 4 if y < 20 else 3
+        p.R(x0, y, x0 + w, y + 1, HB); p.P(x0, y, HD)
+    p.R(2, 6, 5, 9, 'red'); p.P(2, 8, 'redD')
 
 # 걷기 4프레임(옆). 짧은 다리라 발은 몸 아래에서만 움직인다(뻗지 않음).
 # (가까운 다리 발 x, 먼 다리 발 x, 들린 다리: 'n'|'f'|None, 몸 들림 px, 팔 흔들기)
@@ -218,7 +213,7 @@ def side(hair, outfit, breath=0, frame=None, talk=False, hc=HC):
     oy = breath + 1
     nf, ff, lift, bob, sw = SIDE_STRIDE[frame] if frame is not None else STAND
     p = Pen()
-    HAIR_SIDE[hair](p, HB, HD, HL, 'back')
+    side_tail(p, hair, HB, HD, HL)
     shoe = 'redD' if outfit == 'dress' else 'O'
     def leg(foot, up, col, sock):
         legc = col if O['bottom'] == 'pants' else 'skin'
@@ -252,11 +247,12 @@ def side(hair, outfit, breath=0, frame=None, talk=False, hc=HC):
         p.R(sx, sy, sx + 3, sy + 3, T); p.line((sx, sy + 3), (hx, hy - 1), 'skin', 3)
     p.R(hx, hy - 1, hx + 3, hy + 1, 'skin'); p.P(hx + 2, hy, 'skinD')
     # ---- 머리(앞모습과 같은 원) + 얼굴 ----
-    HAIR_SIDE[hair](p, HB, HD, HL, 'front')
-    p.R(19, 14, 21, 17, 'O'); p.P(20, 14, 'white')                    # 눈
-    p.R(18, 18, 21, 19, 'pink')
-    if talk: p.R(21, 19, 23, 21, 'redD'); p.P(21, 20, 'O')
-    else: p.R(21, 20, 23, 21, 'redD')
+    side_head(p, hair, HB, HD, HL)
+    if STYLE.get(hair, {}).get('tail'): p.R(2, 6, 5, 9, 'red'); p.P(2, 8, 'redD')   # 머리끈은 머리 위에
+    p.R(18, 14, 20, 17, 'O'); p.P(19, 14, 'white')                    # 눈(앞모습과 같은 높이·크기)
+    p.R(16, 18, 19, 19, 'pink')
+    if talk: p.R(20, 19, 22, 21, 'redD'); p.P(20, 20, 'O')
+    else: p.R(20, 20, 22, 21, 'redD')
     p.outline()
     return _bob(p.im, bob, 33 + OFF)
 
