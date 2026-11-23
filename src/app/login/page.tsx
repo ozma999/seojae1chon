@@ -60,7 +60,7 @@ function Login() {
 
   return (
     <main className="login">
-      <Link href="/" className="loginlogo"><Image src="/brand/logo-h-light.png" alt="서재일촌" width={268} height={92} className="logoimg hero" priority /></Link>
+      <Link href="/" className="loginlogo"><Image src="/brand/logo-h-light-v3.png" alt="서재일촌" width={261} height={76} className="logoimg hero" priority /></Link>
       <p className="muted">책이 쌓일수록 넓어지는 픽셀 서재</p>
       {linkErr && <p className="note" role="alert">{linkErr}</p>}
       {!live && <p className="demobar">데모 모드예요. Supabase를 연결하기 전에는 이 브라우저에만 저장돼요.</p>}

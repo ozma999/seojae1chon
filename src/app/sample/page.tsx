@@ -30,7 +30,7 @@ export default function SamplePage() {
   }), [books, now]);
   return (
     <main className="app">
-      <header className="bar"><Link href="/" className="brand"><Image src="/brand/logo-h-light.png" alt="서재일촌" width={268} height={92} className="logoimg" /></Link></header>
+      <header className="bar"><Link href="/" className="brand"><Image src="/brand/logo-h-light-v3.png" alt="서재일촌" width={261} height={76} className="logoimg" /></Link></header>
       {state && <RoomCanvas state={state} />}
       <section className="pad">
         <div className="chiprow" role="group" aria-label="방 단계">

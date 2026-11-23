@@ -11,7 +11,7 @@ import { hm, sunTimes } from '../room/time';
 export type CardType = 'count' | 'brag' | 'concept' | 'interior';
 export const CARD_NAMES: Record<CardType, string> = { count: '보유량', brag: '자랑 책장', concept: '컨셉', interior: '인테리어' };
 const W = 1080, H = 1920, M = 80;
-const C = { bg: '#f3ead6', panel: '#fbf7ee', line: '#d2c2a2', ink: '#1b1626', muted: '#6e4329', pri: '#96322c', acc: '#3a6e44' };
+const C = { bg: '#f5ecd8', panel: '#fcf8ef', line: '#d8c7a6', ink: '#2e1f1a', muted: '#6e4b35', pri: '#2f5a86', acc: '#8a5212' };
 const GENRE_COL = { lit: '#cc4a3c', sf: '#2c447e', manga: '#b48834', hum: '#3a6e44' } as const;
 const PX = (s: number) => `700 ${s}px GalmuriCard, sans-serif`;
 const SANS = (s: number, w = 400) => `${w} ${s}px "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif`;
@@ -50,9 +50,9 @@ export async function drawCard(d: CardData): Promise<HTMLCanvasElement> {
   c.fillStyle = C.bg; c.fillRect(0, 0, W, H);
   c.textBaseline = 'alphabetic';
   // 머리: 로고 + 서재 이름
-  const logo = await img('/brand/logo-h-light.png');
+  const logo = await img('/brand/logo-h-light-v3.png');
   c.imageSmoothingEnabled = false;
-  if (logo) { c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(logo, M, 66, 280, 96); c.imageSmoothingEnabled = false; }
+  if (logo) { c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(logo, M, 60, 330, 96); c.imageSmoothingEnabled = false; }
   c.fillStyle = C.muted; c.font = SANS(36); c.textAlign = 'right'; c.fillText(d.profile.roomName, W - M, 132); c.textAlign = 'left';
   // 꼬리
   c.fillStyle = C.line; c.fillRect(M, H - 150, W - 2 * M, 3);

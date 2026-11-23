@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: '책이 쌓일수록 넓어지는 픽셀 서재',
   manifest: '/manifest.webmanifest',
 };
-export const viewport: Viewport = { themeColor: '#f3ead6', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#f5ecd8', width: 'device-width', initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

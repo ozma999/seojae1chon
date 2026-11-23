@@ -1,9 +1,10 @@
-/* 서재일촌 앱 — 브랜드 A '종이와 잉크': 모든 색은 방 그림의 32색(PAL32)에서 가져온다.
-   바탕 크림 종이, 글자 먹색(픽셀 외곽선과 같은 색), 주요 버튼·활성 메뉴·진행 바는 빨간 책등의 그림자색(redD),
-   다음 아이템·링크는 짙은 초록(greenD, 크림 바탕 대비 5:1). 청록(teal)은 글자에 쓰지 않는다(대비 부족). */
+/* 서재일촌 앱 색 — 로고(v3)에서 가져온다.
+   바탕 크림 종이, 글자 로고 먹색(#2E1F1A), 주요 버튼·활성 메뉴·선택·진행 바는 로고 영문 파랑(#2F5A86, 크림 대비 6:1),
+   노랑(#F2C46B, 로고 불빛)은 배지·강조 바탕에만(글자색으로는 대비 부족 → 위 글자는 먹색),
+   다음 아이템 글자는 노랑의 짙은 톤(#8a5212). 빨강은 위험·삭제에만. */
 :root {
-  --bg: #f3ead6; --panel: #fbf7ee; --line: #d2c2a2; --ink: #1b1626; --muted: #6e4329;
-  --pri: #96322c; --pri-ink: #fbf7ee; --acc: #3a6e44; --danger: #96322c; --deco: #3ea29a;
+  --bg: #f5ecd8; --panel: #fcf8ef; --line: #d8c7a6; --ink: #2e1f1a; --muted: #6e4b35;
+  --pri: #2f5a86; --pri-ink: #fcf8ef; --hl: #f2c46b; --acc: #8a5212; --danger: #96322c; --deco: #3ea29a;
   --font: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", system-ui, sans-serif;
   --pixel: var(--font-galmuri), var(--font);
   color-scheme: light;
@@ -92,7 +93,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .tabbar a { display: grid; grid-template-rows: 24px 14px; justify-items: center; align-content: center; row-gap: 4px; min-height: 58px; padding: 6px 0;
   font: 500 12px/14px var(--font); color: var(--muted); text-decoration: none; position: relative; }
 .tabbar a.on { font-weight: 700; }   /* 메뉴 글자는 기본 고딕(픽셀 글꼴은 12px에서 흐려지고 아이콘과 겹쳐 무거움) */
-.tabbar a.on::before { content: ""; position: absolute; top: 0; left: 50%; width: 40px; height: 3px; margin-left: -20px; background: var(--pri); }
+.tabbar a.on::before { content: ""; position: absolute; top: 0; left: 50%; width: 40px; height: 3px; margin-left: -20px; background: var(--hl); }
 .navicon { display: block; width: 24px; height: 24px; }
 .tabbar a.on { color: var(--pri); }
 .toast { position: fixed; left: 50%; bottom: 84px; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--bg);
@@ -133,19 +134,19 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .invites li.used { opacity: .5; }
 /* 머리말 로고 */
 .brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
-.brand img { height: 36px; width: auto; flex: none; }
+.brand img { height: 46px; width: auto; flex: none; }
 /* 로고는 큰 원본을 줄여 쓰므로 부드럽게(픽셀 깨짐 방지) */
 .logoimg { image-rendering: auto; height: auto; }
-.logoimg.hero { width: 220px; height: auto; }
+.logoimg.hero { width: 280px; height: auto; }
 .brand .rn { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chip, .lv, .facts div, .results li, .items li, .invites li { border-color: var(--line); }
 .prog { background: #e4d8bd; }
 img.pix, .pix { image-rendering: pixelated; }
-.bar .brand img { height: 36px; width: auto; }
+.bar .brand img { height: 46px; width: auto; }
 .loginlogo { margin-top: 28px; display: inline-flex; }
-.loginlogo img { width: 200px; height: auto; }
+.loginlogo img { width: 280px; height: auto; }
 .landing { max-width: 440px; margin: 0 auto; padding: 22px 20px 48px; display: grid; gap: 8px; justify-items: center; text-align: center; }
-.landing > img { width: 220px; height: auto; }
+.landing > img { width: 280px; height: auto; }
 .village { margin: 10px 0 0; width: 100%; }
 .village img { width: 100%; height: auto; image-rendering: auto; /* 큰 원본을 줄여 보여 주므로 부드럽게 */ border-radius: 12px; border: 2px solid var(--ink); display: block; }
 .village figcaption { font: 700 12px var(--pixel); color: var(--muted); margin-top: 6px; }
@@ -206,7 +207,7 @@ a.btn.primary { color: var(--pri-ink); }
 .pasted input[type=checkbox] { width: 20px; height: 20px; min-height: 0; padding: 0; margin-top: 2px; accent-color: var(--pri); flex: none; }
 .pasted select { min-height: 36px; padding: 4px 8px; font-size: 13px; }
 .howto { margin: 0 0 8px; padding-left: 18px; }
-.badge { display: inline-block; font: 700 12px/1 var(--pixel); color: var(--pri-ink); background: var(--pri); border-radius: 999px; padding: 5px 10px; margin-bottom: 6px; }
+.badge { display: inline-block; font: 700 12px/1 var(--pixel); color: var(--ink); background: var(--hl); border-radius: 999px; padding: 5px 10px; margin-bottom: 6px; }
 .badge.sm { font-size: 11px; padding: 3px 7px; margin: 0 0 0 6px; vertical-align: 2px; }
 .titlecard { display: grid; justify-items: center; }
 

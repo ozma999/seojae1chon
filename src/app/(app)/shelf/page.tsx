@@ -124,7 +124,7 @@ function TowerCanvas({ entries }: { entries: LibraryEntry[] }) {
         c.fillRect(cx - bw / 2 + 1, floor - Math.round(h * .45) + hw, Math.max(2, bw / 2 - 1), Math.round(h * .45) - hw);
         c.fillRect(cx + 1, floor - Math.round(h * .45) + hw, Math.max(2, bw / 2 - 1), Math.round(h * .45) - hw);
       }
-      c.fillStyle = '#96322c'; c.fillRect(x - 2, floor - h - 1, 38, 1);   // 목표 높이
+      c.fillStyle = '#2f5a86'; c.fillRect(x - 2, floor - h - 1, 38, 1);   // 목표 높이
     }
     // 책 탑: 아래부터 한 줄씩, 그 높이에 있는 책의 색
     const cum: number[] = []; let s = 0;
