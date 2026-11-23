@@ -226,3 +226,24 @@ a.btn.primary { color: var(--pri-ink); }
   border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(45deg); }
 @keyframes pop { from { transform: translate(-50%, -90%) scale(.9); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .bubble { animation: none; } }
+/* 서재산책 정보 */
+.friend .stats b i { font-style: normal; font-size: .6em; color: var(--muted); margin-left: 1px; }
+.us .usrow { display: flex; gap: 14px; align-items: center; }
+.us .pct { display: grid; justify-items: center; min-width: 84px; padding: 8px 6px; border-radius: 12px; background: var(--hl); }
+.us .pct b { font: 700 30px/1 var(--pixel); color: var(--ink); }
+.us .pct b i { font-style: normal; font-size: 16px; }
+.us .pct small { font-size: 11px; color: var(--ink); margin-top: 4px; }
+.sub2 { font-size: 13px; color: var(--muted); margin: 14px 0 6px; font-weight: 600; }
+.bragl { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.bragl button { display: flex; gap: 12px; align-items: flex-start; width: 100%; background: none; border: 0; padding: 0; text-align: left; cursor: pointer; color: inherit; }
+.bragl img, .bragl canvas { width: 52px; height: 74px; object-fit: cover; border: 2px solid var(--ink); border-radius: 3px; flex: none; image-rendering: auto; }
+.bragl canvas { image-rendering: pixelated; }
+.bragl span { display: grid; gap: 2px; }
+.bragl em { font-style: normal; color: var(--pri); font-size: 13px; }
+.genres { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.genres li { display: grid; grid-template-columns: 64px 1fr 40px; align-items: center; gap: 8px; font-size: 13px; }
+.gbar { height: 12px; background: #e4d8bd; border-radius: 3px; overflow: hidden; }
+.gbar i { display: block; height: 100%; }
+.g-lit i { background: #cc4a3c; } .g-sf i { background: #2c447e; } .g-manga i { background: #e8b84a; } .g-hum i { background: #3a6e44; }
+.genres small { text-align: right; color: var(--muted); }
+.roominfo { text-align: center; margin: 4px 0 12px; }
