@@ -186,24 +186,78 @@ def chandelier(s, cx, y0, y1, w):
             s.R(x - 1, y - 2 - ch, x + 2, y - 2, 'white'); s.R(x + 1, y - 2 - ch, x + 2, y - 2, 'wallS')   # 초
             s.P(x, y - 3 - ch, 'yellow'); s.P(x, y - 4 - ch, 'orange'); s.P(x, y - 5 - ch, 'yellow')     # 불꽃
             fx['glow'].append((x, y - 4 - ch))
+            dl = 4 if w < 60 else 6                                       # 받침 아래 수정 늘어뜨림
+            s.R(x - 1, y + 1, x + 2, y + 2 + dl, 'seaD'); s.R(x, y + 1, x + 1, y + 1 + dl, 'skyL'); s.P(x, y + dl, 'white')
+            fx['sparkle'].append((x, y + dl))
+        if w >= 60:                                                       # 위쪽 작은 팔 한 단
+            uy = y1 + h // 4 + 2; uw = w // 2
+            s.d.arc([cx - uw // 2, uy - h // 5, cx + uw // 2 + 1, uy + h // 6], 15, 165, fill=K['O'], width=2)
+            s.d.arc([cx - uw // 2 + 1, uy - h // 5, cx + uw // 2, uy + h // 6 - 1], 15, 165, fill=K['yellow'], width=1)
+            for i in range(4):
+                a = math.pi * (0.12 + 0.76 * i / 3)
+                x = round(cx + 0.5 + math.cos(a) * uw / 2); y = round(uy - h / 30 + math.sin(a) * h / 6)
+                s.R(x - 2, y - 1, x + 3, y + 1, 'yellowD'); s.R(x - 1, y - 5, x + 2, y - 1, 'white'); s.P(x + 1, y - 5, 'wallS')
+                s.P(x, y - 6, 'yellow'); s.P(x, y - 7, 'orange'); fx['glow'].append((x, y - 6))
+        s.d.ellipse([cx - 4, y1 - 1, cx + 6, y1 + 5], fill=K['yellowD'], outline=K['O']); s.P(cx - 1, y1 + 1, 'yellow')   # 왕관
         s.P(cx, y1 + h + 2, 'yellowD'); s.P(cx + 1, y1 + h + 2, 'yellowD'); s.P(cx, y1 + h + 3, 'yellow')
         return
-    if shp == 'b':                                                    # 크리스탈: 겹겹이 매달린 유리구슬
-        s.R(cx - w // 4, y1, cx + w // 4 + 2, y1 + 2, 'yellowD'); s.R(cx - w // 4, y1, cx + w // 4 + 2, y1 + 1, 'O')
-        tiers = 3 if w < 40 else 4
-        s.R(cx, y1, cx + 2, y1 + h + 4, 'yellowD')                    # 가운데 놋쇠 기둥
-        for k in range(tiers):
-            ty = y1 + 3 + k * (h // tiers + 1)
-            hw = round(w / 2 * (1 - 0.18 * k))
-            for x in range(cx - hw + 1, cx + hw + 1, 3):               # 유리구슬 줄(2칸 폭, 진한 테두리)
-                ln = 3 + ((x * 7 + k) % 3)
-                s.R(x - 1, ty + 1, x + 2, ty + 2 + ln, 'seaD')
-                s.R(x, ty + 1, x + 1, ty + 1 + ln, 'skyL'); s.P(x, ty + ln, 'white'); s.P(x + 1, ty + 1, 'sky')
-                fx['sparkle'].append((x, ty + ln))
-            s.R(cx - hw - 1, ty - 1, cx + hw + 3, ty + 2, 'O'); s.R(cx - hw, ty, cx + hw + 2, ty + 1, 'yellow')   # 놋쇠 고리
-        by = y1 + 3 + tiers * (h // tiers + 1)
-        s.R(cx - 1, by, cx + 3, by + 6, 'seaD'); s.R(cx, by, cx + 2, by + 5, 'skyL'); s.P(cx, by + 4, 'white'); s.P(cx + 1, by + 1, 'sky')
-        for (dx, dy) in ((-w // 3, 4), (w // 3, 6), (0, h // 2)): s.P(cx + dx, y1 + dy, 'white')   # 반짝
+    if shp == 'b':                                                    # 크리스탈: 왕관 → 넓은 주 고리 → 아래로 좁아지는 원뿔 → 물방울
+        H2 = round(w * 0.9)
+        top = y1
+        tiers = [(0.00, 0.16), (0.24, 0.50), (0.44, 0.38), (0.62, 0.27), (0.78, 0.16)]
+        rims = [(top + round(H2 * fy), max(3, round(w * fx))) for fy, fx in tiers]
+        tip = (cx + 1, top + H2)
+        bead = lambda x, y, q: s.P(x, y, 'white' if q % 2 == 0 else 'skyL')
+        # 가운데 놋쇠 기둥
+        s.R(cx, top, cx + 2, tip[1] - 2, 'yellowD'); s.P(cx, top + 2, 'yellow')
+        # 원뿔 윤곽: 주 고리 양 끝·사이에서 맨 아래 끝으로 모이는 구슬 줄
+        ry1, hw1 = rims[1]
+        for f in (-1, -0.55, -0.15, 0.15, 0.55, 1):
+            a = (cx + 1 + hw1 * f, ry1 + 2)
+            k = max(1, round(math.hypot(tip[0] - a[0], tip[1] - a[1])))
+            for q in range(0, k, 2):
+                bead(round(a[0] + (tip[0] - a[0]) * q / k), round(a[1] + (tip[1] - a[1]) * q / k), q // 2)
+        # 왕관에서 주 고리로 퍼지는 구슬 줄
+        ry0, hw0 = rims[0]
+        for f in (-1, -0.5, 0, 0.5, 1):
+            a = (cx + 1 + hw0 * f, ry0 + 1); b = (cx + 1 + hw1 * f, ry1 - 1)
+            k = max(1, round(math.hypot(b[0] - a[0], b[1] - a[1])))
+            for q in range(0, k, 2): bead(round(a[0] + (b[0] - a[0]) * q / k), round(a[1] + (b[1] - a[1]) * q / k), q // 2)
+        # 수정 구슬(가운데)
+        my = (rims[2][0] + rims[3][0]) // 2
+        s.d.ellipse([cx - 3, my - 3, cx + 4, my + 4], fill=K['skyL'], outline=K['seaD']); s.P(cx - 1, my - 1, 'white')
+        for ri in range(len(rims) - 1, -1, -1):
+            ry, hw = rims[ri]
+            # 프리즘: 가운데가 길고 양끝이 짧은 V자(고리마다 아래로 뾰족)
+            if ri >= 1:
+                step = 4 if hw > 10 else 3
+                for x in range(cx + 1 - hw + 1, cx + 1 + hw, step):
+                    d = abs(x - cx - 1) / max(1, hw)
+                    ln = round(2 + (1 - d) * (5 if w >= 60 else 3)) + (x % 2)
+                    s.R(x - 1, ry + 2, x + 2, ry + 3 + ln, 'seaD')
+                    s.R(x, ry + 2, x + 1, ry + 2 + ln, 'skyL'); s.P(x, ry + 1 + ln, 'white'); s.P(x, ry + 3 + ln, 'seaD')
+                    fx['sparkle'].append((x, ry + 1 + ln))
+            # 놋쇠 고리
+            s.R(cx + 1 - hw - 1, ry - 1, cx + 1 + hw + 1, ry + 2, 'O'); s.R(cx + 1 - hw, ry, cx + 1 + hw, ry + 1, 'yellow')
+            # 고리 앞에 늘어진 구슬 꽃줄
+            if ri in (1, 2):
+                span = 8 if w >= 60 else 6
+                sagm = 4 if w >= 60 else 3
+                for x0 in range(cx + 1 - hw, cx + 1 + hw - span + 1, span):
+                    for q in range(span + 1):
+                        bead(x0 + q, ry + 2 + round(math.sin(math.pi * q / span) * sagm), q)
+                    s.P(x0, ry + 2, 'yellow')
+        # 주 고리 위 촛불 전구(밤에 빛난다)
+        nb = 7 if w >= 60 else 5
+        for i in range(nb):
+            x = round(cx + 1 - hw1 + 2 + (2 * hw1 - 4) * i / (nb - 1))
+            s.R(x - 1, ry1 - 4, x + 2, ry1 - 1, 'white'); s.P(x + 1, ry1 - 4, 'wallS'); s.P(x, ry1 - 5, 'yellow'); s.P(x, ry1 - 6, 'orange')
+            fx['glow'].append((x, ry1 - 5))
+        # 맨 아래 물방울 수정
+        by = tip[1] - 3
+        s.d.polygon([(cx + 1, by), (cx + 5, by + 6), (cx + 1, by + 11), (cx - 3, by + 6)], fill=K['skyL'], outline=K['seaD'])
+        s.P(cx, by + 4, 'white'); s.P(cx + 1, by + 3, 'white'); s.P(cx + 2, by + 7, 'sky')
+        fx['sparkle'].append((cx + 1, by + 5))
         return
     # 링: 놋쇠 고리 + 전구
     ry = max(3, w // 7); rcy = y1 + h // 2
@@ -211,7 +265,16 @@ def chandelier(s, cx, y0, y1, w):
         s.line((cx, y1), (cx + dx, rcy - ry + 1), 'greyD')
     s.d.ellipse([cx - w // 2, rcy - ry, cx + w // 2 + 1, rcy + ry], outline=K['O'], width=3)
     s.d.ellipse([cx - w // 2 + 1, rcy - ry + 1, cx + w // 2, rcy + ry - 1], outline=K['yellow'], width=1)
+    ir = w // 2 - max(4, w // 8)                                     # 안쪽 작은 고리
+    s.d.ellipse([cx - ir, rcy - ry + 2, cx + ir + 1, rcy + ry - 2], outline=K['O'], width=2)
+    s.d.ellipse([cx - ir + 1, rcy - ry + 3, cx + ir, rcy + ry - 3], outline=K['yellowD'], width=1)
     n = 6 if w < 40 else 9
+    for i in range(n - 1):                                            # 전구 사이 수정 늘어뜨림
+        a = math.pi * (0.1 + 0.8 * (i + 0.5) / (n - 1))
+        x = round(cx + math.cos(a) * w / 2); y = round(rcy + math.sin(a) * ry) + 1
+        dl = 4 if w < 60 else 6
+        s.R(x - 1, y, x + 2, y + 1 + dl, 'seaD'); s.R(x, y, x + 1, y + dl, 'skyL'); s.P(x, y + dl - 1, 'white')
+        fx['sparkle'].append((x, y + dl - 1))
     for i in range(n):
         a = math.pi * (0.1 + 0.8 * i / (n - 1))
         x = round(cx + math.cos(a) * w / 2); y = round(rcy + math.sin(a) * ry)
