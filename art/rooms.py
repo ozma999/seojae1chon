@@ -345,6 +345,32 @@ def window_imgs(s,mask,scene,tod):
         im=im.convert('RGBA')
         im.putalpha(mask.crop((x0,y0,x1,y1)));out.append(((x0,y0),im))
     return out
+def walk_data(s,lays):
+    """캐릭터가 걸을 수 있는 바닥(다각형)과 들를 곳(관심 지점). 좌표는 발 위치."""
+    vx,vy=s.vp;FY=s.FY;H=s.H
+    def wall_x(bx,y): return vx+(bx-vx)*(y-vy)/(FY-vy)
+    top=FY+6;bot=H-3
+    side=14 if any(L['id']=='x' for L in lays) else 10
+    poly=[[round(wall_x(s.bx0,top))+side,top],[round(wall_x(s.bx1,top))-side,top],
+          [min(s.W-6,round(wall_x(s.bx1,bot))-side),bot],[max(6,round(wall_x(s.bx0,bot))+side),bot]]
+    # 바닥 물건 자리(러그처럼 납작한 건 제외): [x0, y0, x1, y1]
+    blocks=[]
+    for L in lays:
+        if L['kind']!='floor' or not L['base'] or not L.get('default',True): continue
+        x0,x1=L['x'],L['x']+L['im'].width
+        blocks.append([x0-3,L['base']-7,x1+3,L['base']+3])
+    poi=[]
+    P=getattr(s,'poi',{})
+    for (x,yb) in sorted(P.get('sofa',())): poi.append(dict(kind='sofa',x=x,y=yb+1,face='front'))
+    for (x,yb) in sorted(P.get('plant',())):
+        if yb<=FY: continue          # 책장 위 화분은 못 간다
+        poi.append(dict(kind='plant',x=x-19 if x>s.W//2 else x+19,y=yb,face='right' if x>s.W//2 else 'left'))
+    for (x0,y0,x1,y1) in s.glass:
+        if y1<FY-140: continue      # 너무 높은 창(복층 위)은 아래에서 올려다본다
+        poi.append(dict(kind='window',x=(x0+x1)//2,y=top+2,face='back'))
+    lows=sorted({(a,b) for a,b,yb,mh in s.slots if yb>FY-30},key=lambda q:q[0])
+    for a,b in lows[::max(1,len(lows)//3)][:3]: poi.append(dict(kind='shelf',x=(a+b)//2,y=top+2,face='back'))
+    return dict(poly=poly,blocks=blocks,poi=poi)
 def capacity(L,seed=1):
     """프로토타입 fillSlots와 같은 방식으로, 데모 책(쪽수 120~620, 양장 15%) 기준 수용량."""
     r=random.Random(seed)
@@ -383,6 +409,7 @@ def export(outdir='.'):
                         items=[dict(id=L['id'],x=L['x'],y=L['y'],kind=L['kind'],base=L['base'],img=durl(L['im']),**({'var':L['var']} if L['var'] else {})) for L in lays],
                         bg={},win=[dict(x=b[0],y=b[1]) for b in s.glass])
                 for w in lv['win']: w['img']={}
+                lv['walk']=walk_data(s,lays)
             mask=glass_mask(s)
             day=window_imgs(s,mask,THEMES[tk]['scene'],'낮')
             bg=s.im.convert('RGBA')

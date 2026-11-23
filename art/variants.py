@@ -58,6 +58,7 @@ def rug(s, cx, cy, rx, ry):
 
 # ---------- 화분 ----------
 def pot_plant(s, x, yb, big=False):
+    s.__dict__.setdefault('poi', {}).setdefault('plant', set()).add((x + 7, yb))
     shp, _ = cur('plant')
     if shp == 'a':
         _shadow(s, x-3, x+(17 if big else 15), yb+1); scenes.plant(s, x, yb, big); return
@@ -84,6 +85,7 @@ def pot_plant(s, x, yb, big=False):
 
 # ---------- 의자 ----------
 def armchair(s, x, yb, col='teal', hi='green'):
+    s.__dict__.setdefault('poi', {}).setdefault('sofa', set()).add((x + 18, yb))
     from rooms import box3d
     shp, ci = cur('chair'); _, c, h, d = COLORS['chair'][ci]
     if shp == 'a':     # 정면 1인 소파: 둥근 등받이 → 방석 → 양팔걸이 → 받침·다리

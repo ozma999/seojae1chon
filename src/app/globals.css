@@ -218,3 +218,11 @@ a.btn.primary { color: var(--pri-ink); }
 .style small { font-size: 12px; color: var(--muted); }
 .style[aria-pressed="true"] { border: 2px solid var(--pri); background: #fff; }
 .style[aria-pressed="true"] small { color: var(--pri); font-weight: 700; }
+/* 일촌 방문 말풍선 */
+.bubble { position: absolute; transform: translate(-50%, -100%); width: max-content; max-width: min(160px, 48%); padding: 5px 9px; border-radius: 10px; background: #fff;
+  border: 2px solid var(--ink); color: var(--ink); font-size: 12px; line-height: 1.35; white-space: normal; pointer-events: none; text-align: center;
+  box-shadow: 0 2px 0 rgba(46, 31, 26, .25); animation: pop .18s ease-out; }
+.bubble::after { content: ""; position: absolute; left: calc(50% + var(--tail, 0px)); bottom: -7px; width: 8px; height: 8px; margin-left: -4px; background: #fff;
+  border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: rotate(45deg); }
+@keyframes pop { from { transform: translate(-50%, -90%) scale(.9); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .bubble { animation: none; } }

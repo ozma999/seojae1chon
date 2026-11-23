@@ -122,9 +122,18 @@ function drawSpine(c: CanvasRenderingContext2D, p: Placed) {
 
 // ---------- 방 합성 ----------
 export interface Hit { book?: RoomBook; empty?: boolean; brag?: boolean; x: number; y: number; w: number; h: number }
+/** 바닥 물건 한 개(시간대 그늘까지 입힌 조각). base = 바닥에 닿는 y(앞뒤 순서) */
+export interface FloorPiece { id: ItemId; c: HTMLCanvasElement; x: number; y: number; base: number; w: number }
+/** 캐릭터 한 프레임: x,y = 발 위치(방 좌표) */
+export interface ActorDraw { src: HTMLCanvasElement; x: number; y: number; flip?: boolean; base?: number }
 export interface World {
   li: number; level: ArtLevel; theme: ThemeKey; tod: Tod;
-  back: HTMLCanvasElement; front: HTMLCanvasElement; lights: Light[];
+  /** 벽·책·벽 물건(바닥 물건 제외) */
+  back: HTMLCanvasElement; floor: FloorPiece[]; lights: Light[];
+  /** 지금 켜진 바닥 물건 자리(캐릭터가 피해 간다) [x0,y0,x1,y1] */
+  blocks: [number, number, number, number][];
+  /** 들를 곳(물건이 켜져 있을 때만) */
+  poi: NonNullable<ArtLevel['walk']>['poi'];
   hits: Hit[]; overflow: number; bragSlots: number;
 }
 const canvas = (w: number, h: number) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -166,25 +175,33 @@ export function createRenderer(la: LoadedArt) {
         else { x.strokeStyle = 'rgba(0,0,0,0.35)'; x.lineWidth = 1; x.strokeRect(cx + .5, cy + .5, 15, 20); hits.push({ empty: true, x: cx, y: cy, w: 16, h: 21 }); }
       }
     }
-    // 아이템: 벽 → 바닥(발 위치 기준 앞뒤)
-    const front = canvas(L.W, L.H), fx = ctx2d(front);
+    // 아이템: 벽 물건은 배경에, 바닥 물건은 한 개씩 따로(캐릭터와 앞뒤를 매번 정한다)
     const wallItems = L.items.filter((it) => on(it.id) && vOk(it) && it.kind === 'wall');
     wallItems.forEach((it) => x.drawImage(img(it.img), it.x, it.y));
-    L.items.filter((it) => on(it.id) && vOk(it) && it.kind === 'floor').sort((a, b) => a.base - b.base)
-      .forEach((it) => (it.base >= L.foot[1] ? fx : x).drawImage(img(it.img), it.x, it.y));
-    // 방의 시간(창 유리 제외)
     const lights = L.lights.filter((l) => on(l.id) && (!l.shape || l.shape === pickedVar(art, l.id, st.picks)?.[0]));
+    const floorItems = L.items.filter((it) => on(it.id) && vOk(it) && it.kind === 'floor');
+    const floor: FloorPiece[] = floorItems.map((it) => {
+      const im = img(it.img), c = canvas(im.width, im.height), cx = ctx2d(c);
+      cx.drawImage(im, 0, 0);
+      if (tod !== '낮') shade(cx, im.width, im.height, tod, lights, null, it.x, it.y);
+      return { id: it.id, c, x: it.x, y: it.y, base: it.base, w: im.width };
+    });
+    // 방의 시간(창 유리 제외)
     if (tod !== '낮') {
       const wm = canvas(L.W, L.H), wx = ctx2d(wm);
       winImgs.forEach(({ w, im }) => wx.drawImage(im, w.x, w.y));
       wx.globalCompositeOperation = 'destination-out';
       wallItems.forEach((it) => wx.drawImage(img(it.img), it.x, it.y));
       shade(x, L.W, L.H, tod, lights, wx.getImageData(0, 0, L.W, L.H).data);
-      shade(fx, L.W, L.H, tod, lights, null);
     }
-    return { li, level: L, theme, tod, back, front, lights, hits, overflow, bragSlots };
+    // 납작한 러그(base 0)는 밟고 지나간다
+    const blocks = floor.filter((f) => f.base > 0).map((f) => [f.x - 3, f.base - 7, f.x + f.w + 3, f.base + 3] as [number, number, number, number]);
+    const need: Record<string, ItemId> = { sofa: 'chair', plant: 'plant' };
+    const poi = (L.walk?.poi ?? []).filter((q) => !need[q.kind] || on(need[q.kind]));
+    return { li, level: L, theme, tod, back, floor, lights, blocks, poi, hits, overflow, bragSlots };
   }
 
+  /** 예전 정면 캐릭터 시트(공유 카드·움직임 끔일 때) */
   function avatar(w: World, hair: number, outfit: number, breath: 0 | 1) {
     const A = art.avatar, sx = (outfit * 2 + breath) * A.w, sy = hair * A.h;
     const fx = w.level.foot[0] - A.w / 2, fy = w.level.foot[1] - A.h + 1;
@@ -200,14 +217,38 @@ export function createRenderer(la: LoadedArt) {
     }
     return c;
   }
+  const staticActors = (w: World, hair: number, outfit: number, breath: 0 | 1): ActorDraw[] =>
+    [{ src: avatar(w, hair, outfit, breath), x: w.level.foot[0], y: w.level.foot[1] }];
+  /** 걸어 다니는 캐릭터 프레임 한 장(시간대 그늘 입힘, 위치는 8px 단위로 캐시) */
+  function actorFrame(w: World, sheet: HTMLImageElement, fw: number, fh: number, frame: number, x: number, y: number) {
+    const gx = Math.round(x / 8) * 8, gy = Math.round(y / 8) * 8;
+    const key = [sheet.src, frame, w.tod, gx, gy, w.lights.map((l) => l.id + l.x).join()].join('|');
+    let c = avCache.get(key);
+    if (!c) {
+      c = canvas(fw, fh);
+      const cx = ctx2d(c);
+      cx.drawImage(sheet, frame * fw, 0, fw, fh, 0, 0, fw, fh);
+      if (w.tod !== '낮') shade(cx, fw, fh, w.tod, w.lights, null, gx - fw / 2, gy - fh + 1, 1);
+      if (avCache.size > 400) avCache.clear();
+      avCache.set(key, c);
+    }
+    return c;
+  }
 
-  /** 화면 캔버스에 방 + 캐릭터 + 앞쪽 가구를 s배로 그린다 */
-  function composite(ctx: CanvasRenderingContext2D, w: World, s: number, hair: number, outfit: number, breath: 0 | 1) {
-    const L = w.level, A = art.avatar;
+  /** 화면 캔버스에 방 + (바닥 물건·캐릭터를 발 위치 순서로) s배로 그린다 */
+  function composite(ctx: CanvasRenderingContext2D, w: World, s: number, actors: ActorDraw[]) {
+    const L = w.level;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(w.back, 0, 0, L.W * s, L.H * s);
-    ctx.drawImage(avatar(w, hair, outfit, breath), 0, 0, A.w, A.h, (L.foot[0] - A.w / 2) * s, (L.foot[1] - A.h + 1) * s, A.w * s, A.h * s);
-    ctx.drawImage(w.front, 0, 0, L.W * s, L.H * s);
+    type D = { base: number; draw: () => void };
+    const list: D[] = w.floor.map((f) => ({ base: f.base, draw: () => ctx.drawImage(f.c, f.x * s, f.y * s, f.c.width * s, f.c.height * s) }));
+    for (const a of actors) list.push({ base: a.base ?? a.y, draw: () => {
+      const fw = a.src.width, fh = a.src.height, dx = (a.x - fw / 2) * s, dy = (a.y - fh + 1) * s;
+      if (a.flip) { ctx.save(); ctx.translate(dx + fw * s, dy); ctx.scale(-1, 1); ctx.drawImage(a.src, 0, 0, fw * s, fh * s); ctx.restore(); }
+      else ctx.drawImage(a.src, dx, dy, fw * s, fh * s);
+    } });
+    // 같은 높이면 물건 먼저(캐릭터가 앞)
+    list.sort((p, q) => p.base - q.base).forEach((d) => d.draw());
   }
   /**
    * 목표 크기(기기 픽셀)에 맞춰 그리기. 픽셀 그림을 1.5배·2.3배처럼 어중간한 배율로 늘리면
@@ -215,18 +256,18 @@ export function createRenderer(la: LoadedArt) {
    * → 배율이 정수에 가까우면 그대로, 아니면 한 단계 큰 정수 배로 그린 뒤 부드럽게 줄인다(모든 선이 같은 굵기)
    */
   let off: HTMLCanvasElement | null = null;
-  function compositeFit(ctx: CanvasRenderingContext2D, w: World, tw: number, th: number, hair: number, outfit: number, breath: 0 | 1) {
+  function compositeFit(ctx: CanvasRenderingContext2D, w: World, tw: number, th: number, actors: ActorDraw[]) {
     const L = w.level, t = tw / L.W, k = Math.round(t);
-    if (k >= 1 && Math.abs(t - k) < 0.08) { composite(ctx, w, t, hair, outfit, breath); return; }
+    if (k >= 1 && Math.abs(t - k) < 0.08) { composite(ctx, w, t, actors); return; }
     const K = Math.ceil(t);
     off ??= document.createElement('canvas');
     if (off.width !== L.W * K || off.height !== L.H * K) { off.width = L.W * K; off.height = L.H * K; }
     const o = off.getContext('2d')!;
     o.clearRect(0, 0, off.width, off.height);
-    composite(o, w, K, hair, outfit, breath);
+    composite(o, w, K, actors);
     ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(off, 0, 0, tw, th);
     ctx.imageSmoothingEnabled = false;
   }
-  return { art, renderWorld, composite, compositeFit };
+  return { art, renderWorld, composite, compositeFit, staticActors, actorFrame };
 }
