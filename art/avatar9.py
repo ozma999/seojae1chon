@@ -3,6 +3,15 @@ from PIL import Image, ImageDraw, ImageFont
 from lib import PAL32 as K
 OFF=4
 W,H=28,43+OFF
+# 옷 정의(앞·뒤·옆 그림이 같이 쓴다). 새 옷은 여기에 한 줄 + 필요하면 꾸밈 키(stripe·vest…) 처리
+OUTDEF={'basic':dict(top=('white','wallS'),sleeve='short',bottom='pants',bc=('navy','navyD')),
+        'knit':dict(top=('navy','navyD'),sleeve='long',bottom='pants',bc=('grey','greyD'),collar=True),
+        'hoodie':dict(top=('grey','greyD'),sleeve='long',bottom='pants',bc=('navy','navyD'),hood=True),
+        'librarian':dict(top=('white','wallS'),sleeve='long',bottom='pants',bc=('woodD','deep'),vest=('green','greenD')),
+        'stripe':dict(top=('white','wallS'),sleeve='short',bottom='shorts',bc=('blue','navy'),stripe='navy'),
+        'dress':dict(top=('pink','redD'),sleeve='short',bottom='skirt',bc=('pink','redD')),
+        'overall':dict(top=('yellow','yellowD'),sleeve='short',bottom='pants',bc=('blue','navy'),overall=True),
+        'coat':dict(top=('cream','wallD'),sleeve='long',bottom='pants',bc=('navy','navyD'),coat=True)}
 def make(hair='m_basic',outfit='basic',hc=('woodD','deep','wood'),breath=0,hood=None):
     im=Image.new('RGBA',(W,H),(0,0,0,0));c=lambda n:K[n]+(255,)
     def P(x,y,n):
@@ -45,14 +54,7 @@ def make(hair='m_basic',outfit='basic',hc=('woodD','deep','wood'),breath=0,hood=
         E(b,'grey');E([b[0]+3,b[1]+3,b[2]-3,b[3]-1],'greyD')
     # ================= outfit (body) =================
     oy=breath+1
-    OUT={'basic':dict(top=('white','wallS'),sleeve='short',bottom='pants',bc=('navy','navyD')),
-         'knit':dict(top=('navy','navyD'),sleeve='long',bottom='pants',bc=('grey','greyD'),collar=True),
-         'hoodie':dict(top=('grey','greyD'),sleeve='long',bottom='pants',bc=('navy','navyD'),hood=True),
-         'librarian':dict(top=('white','wallS'),sleeve='long',bottom='pants',bc=('woodD','deep'),vest=('green','greenD')),
-         'stripe':dict(top=('white','wallS'),sleeve='short',bottom='shorts',bc=('blue','navy'),stripe='navy'),
-         'dress':dict(top=('pink','redD'),sleeve='short',bottom='skirt',bc=('pink','redD')),
-         'overall':dict(top=('yellow','yellowD'),sleeve='short',bottom='pants',bc=('blue','navy'),overall=True),
-         'coat':dict(top=('cream','wallD'),sleeve='long',bottom='pants',bc=('navy','navyD'),coat=True)}[outfit]
+    OUT=OUTDEF[outfit]
     T,TS=OUT['top'];BC,BS=OUT['bc']
     R(12,21,16,23+oy,'skinD')
     if OUT.get('hood'):

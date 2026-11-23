@@ -1,0 +1,290 @@
+# 캐릭터 턴어라운드 + 모션 (앞·뒤·옆, 서기·걷기·앉기·말하기)
+#
+# 구조(새 머리·옷을 늘리기 쉽게):
+#   - 앞모습은 avatar9.make() 그대로(지금 서재의 캐릭터와 같은 그림)
+#   - 뒷모습·옆모습은 이 파일의 HAIR_BACK / HAIR_SIDE (머리), avatar9.OUTDEF (옷 정의) 를 쓴다
+#   - 걷기 다리·앉기·말하기는 모든 머리·옷에 공통으로 적용된다
+# 새 머리 추가: avatar9.make 의 앞머리 분기 + HAIR_BACK[키] + HAIR_SIDE[키]
+# 새 옷 추가:   avatar9.OUTDEF[키] (+ 특별 꾸밈이면 make / _torso_back / _torso_side 에 한 줄)
+import math
+from PIL import Image, ImageDraw
+from lib import PAL32 as K
+import avatar9
+from avatar9 import W, H, OFF, OUTDEF
+
+HC = ('woodD', 'deep', 'wood')   # 머리색(밝음, 그림자, 하이라이트)
+
+class Pen:
+    def __init__(s):
+        s.im = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    def P(s, x, y, n):
+        y += OFF
+        if 0 <= x < W and 0 <= y < H: s.im.putpixel((x, y), K[n] + (255,))
+    def G(s, x, y):
+        y += OFF
+        return s.im.getpixel((x, y)) if 0 <= x < W and 0 <= y < H else (0, 0, 0, 0)
+    def R(s, x0, y0, x1, y1, n):
+        for y in range(y0, y1):
+            for x in range(x0, x1): s.P(x, y, n)
+    def E(s, b, n):
+        t = Image.new('L', (W, H), 0); ImageDraw.Draw(t).ellipse([b[0], b[1] + OFF, b[2], b[3] + OFF], fill=255)
+        for y in range(H):
+            for x in range(W):
+                if t.getpixel((x, y)): s.P(x, y - OFF, n)
+    def line(s, a, b, n, w=1):
+        (x0, y0), (x1, y1) = a, b
+        k = max(abs(x1 - x0), abs(y1 - y0), 1)
+        for i in range(k + 1):
+            x = round(x0 + (x1 - x0) * i / k); y = round(y0 + (y1 - y0) * i / k)
+            s.R(x, y, x + w, y + 1, n)
+    def outline(s):
+        a = s.im.load(); m = [[a[x, y][3] > 0 for x in range(W)] for y in range(H)]
+        for y in range(H):
+            for x in range(W):
+                if not m[y][x] and any(0 <= x + dx < W and 0 <= y + dy < H and m[y + dy][x + dx] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                    a[x, y] = K['O'] + (255,)
+
+# ======================================================================
+# 뒷모습
+# ======================================================================
+def _hair_back_cap(p, bottom, HB, HD, HL):
+    p.E([2, 0, 25, 22], HB); p.R(3, 10, 25, bottom, HB)
+    for x, y0 in ((7, 8), (13, 5), (19, 8)): p.R(x, y0, x + 1, min(bottom - 2, y0 + 7), HD)   # 머리결(짧게 3줄)
+    p.R(4, bottom - 1, 24, bottom, HD)
+    for x, y in [(8, 2), (9, 2), (10, 1), (11, 1), (12, 1), (7, 3)]: p.P(x, y, HL)
+
+def hb_m_basic(p, HB, HD, HL): _hair_back_cap(p, 17, HB, HD, HL)
+def hb_crop(p, HB, HD, HL):    p.E([3, 0, 24, 18], HB); [p.P(x, y, HL) for x, y in [(9, 2), (10, 1), (11, 1)]]
+def hb_side(p, HB, HD, HL):    _hair_back_cap(p, 17, HB, HD, HL)
+def hb_f_bob(p, HB, HD, HL):
+    _hair_back_cap(p, 24, HB, HD, HL); p.R(2, 12, 26, 24, HB)
+    for x in (5, 22): p.R(x, 15, x + 1, 23, HD)
+def hb_long(p, HB, HD, HL):
+    _hair_back_cap(p, 33, HB, HD, HL); p.R(2, 12, 26, 33, HB)
+    for x in (6, 13, 21): p.R(x, 16, x + 1, 31, HD)
+    for x in range(2, 26, 3): p.P(x, 33, HD)
+def hb_pony(p, HB, HD, HL):
+    _hair_back_cap(p, 17, HB, HD, HL)
+    for y in range(8, 28):                                          # 꼬리(가운데로 늘어짐)
+        w = 6 if y < 14 else 5 if y < 22 else 4 if y < 25 else 2
+        x0 = 14 - w // 2; p.R(x0, y, x0 + w, y + 1, HB); p.P(x0, y, HD); p.P(x0 + w - 1, y, HD)
+    p.R(14, 10, 15, 24, HL)
+    p.R(11, 7, 17, 9, 'red'); p.P(11, 8, 'redD')                    # 머리끈
+def hb_curly(p, HB, HD, HL):
+    for cx, cy, r in [(5, 5, 4), (9, 3, 4), (14, 2, 4), (19, 3, 4), (23, 5, 4), (4, 11, 4), (24, 11, 4), (6, 16, 4), (22, 16, 4), (10, 15, 4), (14, 16, 4), (18, 15, 4), (9, 9, 4), (14, 8, 4), (19, 9, 4)]:
+        p.E([cx - r, cy - r, cx + r, cy + r], HB); p.P(cx - 1, cy + r - 1, HD); p.P(cx, cy + r - 1, HD); p.P(cx - 1, cy - r + 1, HL)
+def hb_bun(p, HB, HD, HL):
+    _hair_back_cap(p, 17, HB, HD, HL)
+    p.E([9, -5, 18, 3], HB); p.P(11, -3, HL); p.P(12, -4, HL); p.R(11, 2, 17, 3, 'red')
+HAIR_BACK = dict(m_basic=hb_m_basic, f_bob=hb_f_bob, crop=hb_crop, side=hb_side, long=hb_long, pony=hb_pony, curly=hb_curly, bun=hb_bun)
+
+def _torso(p, O, oy, back):
+    """앞·뒤 공통 몸통(뒤는 깃·단추 같은 앞 꾸밈 없이)"""
+    T, TS = O['top']; BC, BS = O['bc']
+    p.R(12, 21, 16, 23 + oy, 'skinD')
+    rows = {22: (10, 18), 23: (8, 20), 24: (7, 21), 25: (7, 21), 26: (7, 21)}
+    for y, (a, z) in rows.items(): p.R(a, y + oy, z, y + 1 + oy, T)
+    p.R(9, 27 + oy, 19, 32 + oy, T)
+    if O['sleeve'] == 'long':
+        p.R(7, 27 + oy, 9, 31 + oy, T); p.R(19, 27 + oy, 21, 31 + oy, T)
+        p.R(7, 31 + oy, 9, 32 + oy, 'skin'); p.R(19, 31 + oy, 21, 32 + oy, 'skin')
+    else:
+        p.R(7, 27 + oy, 9, 32 + oy, 'skin'); p.R(19, 27 + oy, 21, 32 + oy, 'skin')
+        p.P(7, 26 + oy, TS); p.P(20, 26 + oy, TS)
+    p.R(7, 32 + oy, 9, 33 + oy, 'skinD'); p.R(19, 32 + oy, 21, 33 + oy, 'skinD')
+    for y in range(24, 32): p.P(9, y + oy, TS)                       # 뒤에서 보면 그늘은 반대쪽
+    p.R(9, 31 + oy, 19, 32 + oy, TS)
+    if O.get('stripe'):
+        for y in range(24, 32, 2): p.R(7 if y < 27 else 9, y + oy, 21 if y < 27 else 19, y + 1 + oy, O['stripe'])
+    if O.get('hood') and back:
+        p.E([8, 19 + oy, 20, 27 + oy], T); p.E([10, 20 + oy, 18, 25 + oy], TS)
+    if O.get('vest'):
+        V, VS = O['vest']; p.R(9, 24 + oy, 19, 32 + oy, V); p.R(9, 31 + oy, 19, 32 + oy, VS)
+    if O.get('overall'):
+        p.R(10, 27 + oy, 18, 32 + oy, BC)
+        p.line((11, 23 + oy), (16, 27 + oy), BC, 2); p.line((16, 23 + oy), (11, 27 + oy), BC, 2)    # X자 멜빵
+    if O.get('coat'):
+        p.R(9, 30 + oy, 19, 31 + oy, 'woodD'); p.R(9, 32 + oy, 19, 36, T); p.R(9, 35, 19, 36, TS); p.R(13, 32 + oy, 15, 36, TS)
+
+def _legs_front(p, O, oy, outfit):
+    BC, BS = O['bc']
+    if O['bottom'] == 'pants':
+        y0 = 36 if O.get('coat') else 32 + oy
+        p.R(9, y0, 19, 38, BC); p.R(13, max(35, y0), 15, 38, BS)
+    elif O['bottom'] == 'shorts':
+        p.R(9, 32 + oy, 19, 35, BC); p.R(13, 34, 15, 35, BS)
+        p.R(10, 35, 13, 38, 'skin'); p.R(15, 35, 18, 38, 'skin')
+    elif O['bottom'] == 'skirt':
+        p.R(9, 32 + oy, 19, 34, BC); p.R(8, 34, 20, 36, BC); p.R(8, 35, 20, 36, BS)
+        p.R(10, 36, 13, 38, 'skin'); p.R(15, 36, 18, 38, 'skin')
+    p.R(10, 38, 13, 40, 'white'); p.R(15, 38, 18, 40, 'white')
+    shoe = 'redD' if outfit == 'dress' else 'O'
+    p.R(9, 40, 13, 42, shoe); p.R(15, 40, 19, 42, shoe)
+
+def back(hair, outfit, breath=0, hc=HC):
+    HB, HD, HL = hc; O = OUTDEF[outfit]; oy = breath + 1
+    p = Pen()
+    # 목·귀
+    p.R(12, 18, 16, 22, 'skin'); p.R(12, 20, 16, 22, 'skinD')
+    for y in (13, 14, 15): p.P(2, y, 'skin'); p.P(25, y, 'skin')
+    _torso(p, O, oy, True)
+    _legs_front(p, O, oy, outfit)
+    HAIR_BACK[hair](p, HB, HD, HL)
+    p.outline()
+    return p.im
+
+# ======================================================================
+# 옆모습(오른쪽을 본다. 왼쪽은 좌우 뒤집기)
+# ======================================================================
+def hs_cap(p, HB, HD, HL, nape=15):
+    p.E([5, 0, 23, 14], HB); p.R(6, 6, 14, nape, HB)
+    for x, y in [(10, 1), (11, 1), (12, 1), (13, 1), (9, 2)]: p.P(x, y, HL)
+def hs_fringe(p, HB, HD, x1=21, y1=8):
+    for x in range(13, x1):
+        yb = y1 - (1 if x % 3 == 0 else 0)
+        p.R(x, 2, x + 1, yb, HB)
+    p.P(x1 - 1, y1, HD)
+def hs_m_basic(p, HB, HD, HL, layer):
+    if layer == 'front': hs_cap(p, HB, HD, HL, 15); hs_fringe(p, HB, HD, 21, 9)
+def hs_crop(p, HB, HD, HL, layer):
+    if layer == 'front': p.E([6, 0, 22, 12], HB); p.R(7, 5, 13, 12, HB); hs_fringe(p, HB, HD, 20, 7)
+def hs_side(p, HB, HD, HL, layer):
+    if layer == 'front': hs_cap(p, HB, HD, HL, 15); hs_fringe(p, HB, HD, 22, 11)
+def hs_f_bob(p, HB, HD, HL, layer):
+    if layer == 'back': p.R(5, 8, 15, 24, HD)
+    else:
+        hs_cap(p, HB, HD, HL, 23); p.R(5, 9, 13, 24, HB); p.R(13, 9, 15, 22, HB)
+        for x in (7, 10): p.R(x, 12, x + 1, 23, HD)
+        hs_fringe(p, HB, HD, 21, 10)
+def hs_long(p, HB, HD, HL, layer):
+    if layer == 'back': p.R(4, 8, 15, 33, HD)
+    else:
+        hs_cap(p, HB, HD, HL, 33); p.R(5, 9, 14, 33, HB)
+        for x in (7, 10): p.R(x, 12, x + 1, 32, HD)
+        for x in range(5, 14, 3): p.P(x, 33, HD)
+        hs_fringe(p, HB, HD, 21, 10)
+def hs_pony(p, HB, HD, HL, layer):
+    if layer == 'back':
+        for y in range(8, 26):                                        # 뒤로 늘어진 꼬리
+            x0 = 3 - (1 if y > 18 else 0) + (1 if y > 23 else 0); w = 4 if y < 19 else 3
+            p.R(x0, y, x0 + w, y + 1, HB); p.P(x0, y, HD)
+    else:
+        hs_cap(p, HB, HD, HL, 14); p.R(5, 7, 8, 10, 'red'); hs_fringe(p, HB, HD, 21, 9)
+def hs_curly(p, HB, HD, HL, layer):
+    if layer == 'front':
+        for cx, cy, r in [(8, 4, 4), (13, 2, 4), (18, 3, 4), (6, 9, 4), (7, 14, 4), (10, 7, 3), (21, 6, 3)]:
+            p.E([cx - r, cy - r, cx + r, cy + r], HB); p.P(cx - 1, cy + r - 1, HD); p.P(cx, cy + r - 1, HD); p.P(cx - 1, cy - r + 1, HL)
+def hs_bun(p, HB, HD, HL, layer):
+    if layer == 'front':
+        hs_cap(p, HB, HD, HL, 15); p.E([5, -5, 13, 3], HB); p.P(7, -3, HL); p.R(8, 2, 12, 3, 'red'); hs_fringe(p, HB, HD, 21, 9)
+HAIR_SIDE = dict(m_basic=hs_m_basic, f_bob=hs_f_bob, crop=hs_crop, side=hs_side, long=hs_long, pony=hs_pony, curly=hs_curly, bun=hs_bun)
+
+# 걷기 4프레임(옆): 앞다리·뒷다리 발끝 x, 들린 발 높이, 팔 흔들기
+SIDE_STRIDE = [((14, 13), (0, 0), 0), ((17, 10), (0, 1), 2), ((14, 13), (0, 0), 0), ((10, 17), (1, 0), -2)]
+
+def side(hair, outfit, breath=0, frame=None, talk=False, hc=HC):
+    HB, HD, HL = hc; O = OUTDEF[outfit]; T, TS = O['top']; BC, BS = O['bc']
+    oy = breath + 1
+    (fx, bx), (fl, bl), sw = SIDE_STRIDE[frame] if frame is not None else ((14, 13), (0, 0), 0)
+    p = Pen()
+    HAIR_SIDE[hair](p, HB, HD, HL, 'back')
+    # ---- 다리(뒷다리 먼저, 그늘색) ----
+    shoe = 'redD' if outfit == 'dress' else 'O'
+    def leg(foot, lift, col, sock, front):
+        top = (13, 32)
+        knee = ((top[0] + foot) // 2 + (1 if foot > 14 else 0), 36)
+        legc = col if O['bottom'] == 'pants' else 'skin'
+        p.line(top, knee, legc, 3); p.line(knee, (foot, 38 - lift), legc, 3)
+        p.R(foot, 38 - lift, foot + 3, 40 - lift, sock)
+        p.R(foot, 40 - lift, foot + 5, 42 - lift, shoe)
+    leg(bx, bl, BS, 'wallS', False)
+    # ---- 몸통 ----
+    p.R(12, 21, 16, 23 + oy, 'skinD')
+    for y in range(22, 32): p.R(10, y + oy, 19, y + 1 + oy, T)
+    p.R(10, 22 + oy, 11, 32 + oy, TS)
+    if O.get('stripe'):
+        for y in range(24, 32, 2): p.R(10, y + oy, 19, y + 1 + oy, O['stripe'])
+    if O.get('vest'):
+        V, VS = O['vest']; p.R(10, 24 + oy, 19, 32 + oy, V); p.R(17, 24 + oy, 19, 27 + oy, 'white')
+    if O.get('overall'):
+        p.R(12, 27 + oy, 19, 32 + oy, BC); p.R(16, 23 + oy, 18, 27 + oy, BC)
+    if O.get('hood'):
+        p.E([7, 19 + oy, 14, 27 + oy], T); p.E([8, 20 + oy, 13, 25 + oy], TS)
+    if O['bottom'] == 'pants' and not O.get('coat'): p.R(10, 32 + oy, 18, 34, BC)
+    if O['bottom'] == 'shorts': p.R(10, 32 + oy, 18, 35, BC)
+    if O['bottom'] == 'skirt': p.R(10, 32 + oy, 18, 34, BC); p.R(9, 34, 20, 36, BC); p.R(9, 35, 20, 36, BS)
+    if O.get('coat'):
+        p.R(9, 30 + oy, 19, 31 + oy, 'woodD'); p.R(9, 32 + oy, 19, 36, T); p.R(9, 35, 19, 36, TS)
+    leg(fx, fl, BC, 'white', True)
+    if O['bottom'] == 'skirt': p.R(9, 34, 20, 36, BC); p.R(9, 35, 20, 36, BS)
+    if O.get('coat'): p.R(9, 32 + oy, 19, 36, T); p.R(9, 35, 19, 36, TS)
+    # ---- 팔(앞쪽 팔, 흔들기) ----
+    sx, sy = 14, 23 + oy; hx, hy = 14 + sw, 31 + oy
+    if O['sleeve'] == 'long':
+        p.line((sx, sy), (hx, hy - 1), T, 3); p.line((sx + 2, sy + 1), (hx + 2, hy - 1), TS)
+    else:
+        p.line((sx, sy), (sx + sw // 2, sy + 3), T, 3); p.line((sx + sw // 2, sy + 3), (hx, hy - 1), 'skin', 3)
+    p.R(hx, hy - 1, hx + 3, hy + 1, 'skin'); p.P(hx + 2, hy, 'skinD')
+    # ---- 얼굴 ----
+    for y in range(4, 23):
+        a = 7 if 8 <= y <= 19 else 8 if y in (6, 7, 20) else 9 if y in (5, 21) else 11
+        z = 22 if 9 <= y <= 19 else 21 if y in (7, 8, 20) else 20 if y in (6, 21) else 18
+        p.R(a, y, z, y + 1, 'skin')
+    p.P(22, 16, 'skin'); p.P(22, 17, 'skin'); p.P(23, 17, 'skin')     # 코
+    p.R(11, 13, 13, 16, 'skin'); p.P(12, 14, 'skinD')                 # 귀
+    HAIR_SIDE[hair](p, HB, HD, HL, 'front')
+    p.R(18, 14, 20, 17, 'O'); p.P(19, 14, 'white')                    # 눈
+    p.R(17, 18, 20, 19, 'pink')
+    if talk: p.R(20, 19, 22, 21, 'redD'); p.P(20, 20, 'O')
+    else: p.R(20, 20, 22, 21, 'redD')
+    p.outline()
+    return p.im
+
+# ======================================================================
+# 앞모습: 서기는 avatar9 그대로, 걷기·앉기·말하기는 거기서 만든다
+# ======================================================================
+def _shift_cols(im, x0, x1, y0, y1, dy):
+    """열 x0..x1, 행 y0..y1 을 dy 만큼 올리거나(음수) 내린다(다리 들기)"""
+    src = im.copy(); px = im.load(); sp = src.load()
+    for x in range(x0, x1):
+        for y in range(y0, y1): px[x, y] = (0, 0, 0, 0)
+        for y in range(y0, y1):
+            ny = y + dy
+            if y0 <= ny < y1 or ny < y0: px[x, ny] = sp[x, y] if sp[x, y][3] else px[x, ny]
+    return im
+
+def front(hair, outfit, breath=0, frame=None, talk=False, sit=False, hc=HC):
+    im = avatar9.make(hair, outfit, hc, breath, hood='s' if outfit == 'hoodie' else None)
+    if frame in (1, 3):                                               # 한 발 들기(왼발/오른발)
+        x0, x1 = (7, 14) if frame == 1 else (14, 21)
+        _shift_cols(im, x0, x1, 37 + OFF, H, -1)
+    if talk:
+        p = Pen(); p.im = im; p.R(13, 19, 15, 21, 'redD'); p.P(13, 20, 'O'); p.P(14, 20, 'O')
+    if sit:                                                           # 앉기: 다리를 짧게(무릎이 앞으로) + 몸이 아래로
+        out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        cut = 34 + OFF
+        out.alpha_composite(im.crop((0, 0, W, cut)), (0, 4))
+        knees = im.crop((0, cut, W, cut + 3)); out.alpha_composite(knees, (0, cut + 4))
+        out.alpha_composite(im.crop((0, 38 + OFF, W, H)), (0, cut + 7))
+        im = out
+    return im
+
+def back_walk(hair, outfit, frame, hc=HC):
+    im = back(hair, outfit, 0 if frame in (1, 3) else frame // 2, hc)
+    if frame in (1, 3):
+        x0, x1 = (14, 21) if frame == 1 else (7, 14)
+        _shift_cols(im, x0, x1, 37 + OFF, H, -1)
+    return im
+
+# 한 조합의 프레임 목록(앱 시트 순서). 새 동작은 여기 끝에 덧붙인다
+def frames(hair, outfit, hc=HC):
+    F = []
+    F += [('front_stand', b, front(hair, outfit, b, hc=hc)) for b in (0, 1)]
+    F += [('front_walk', f, front(hair, outfit, f % 2 if f in (0, 2) else 0, frame=f, hc=hc)) for f in range(4)]
+    F += [('back_stand', b, back(hair, outfit, b, hc)) for b in (0, 1)]
+    F += [('back_walk', f, back_walk(hair, outfit, f, hc)) for f in range(4)]
+    F += [('side_stand', b, side(hair, outfit, b, hc=hc)) for b in (0, 1)]
+    F += [('side_walk', f, side(hair, outfit, 0, frame=f, hc=hc)) for f in range(4)]
+    F += [('sit', b, front(hair, outfit, b, sit=True, hc=hc)) for b in (0, 1)]
+    F += [('front_talk', 0, front(hair, outfit, 0, talk=True, hc=hc)), ('side_talk', 0, side(hair, outfit, 0, talk=True, hc=hc))]
+    return F
