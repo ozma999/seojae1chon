@@ -86,11 +86,22 @@ def pot_plant(s, x, yb, big=False):
 def armchair(s, x, yb, col='teal', hi='green'):
     from rooms import box3d
     shp, ci = cur('chair'); _, c, h, d = COLORS['chair'][ci]
-    if shp == 'a':
-        _shadow(s, x-6, x+42, yb+1)
-        box3d(s, x+2, yb-34, 32, 18, 6, h, c, d); box3d(s, x-4, yb-16, 44, 16, 10, h, c, d)
-        box3d(s, x-7, yb-22, 9, 22, 8, h, c, d); box3d(s, x+34, yb-22, 9, 22, 8, h, c, d)
-        s.R(x+2, yb-14, x+32, yb-12, h); return
+    if shp == 'a':     # 정면 1인 소파: 둥근 등받이 → 방석 → 양팔걸이 → 받침·다리
+        _shadow(s, x-7, x+44, yb+1)
+        def rbox(x0, y0, x1, y1, f, top=None, side=None, r=2):
+            s.R(x0, y0 + r, x1, y1, 'O'); s.R(x0 + r, y0, x1 - r, y1, 'O'); s.R(x0 + 1, y0 + 1, x1 - 1, y1, 'O')
+            s.R(x0 + 1, y0 + r + 1, x1 - 1, y1 - 1, f); s.R(x0 + r + 1, y0 + 1, x1 - r - 1, y1 - 1, f); s.R(x0 + 2, y0 + 2, x1 - 2, y1 - 1, f)
+            if top: s.R(x0 + r + 1, y0 + 1, x1 - r - 1, y0 + 3, top); s.R(x0 + 2, y0 + 2, x1 - 2, y0 + 3, top)
+            if side: s.R(x1 - 3, y0 + 3, x1 - 1, y1 - 1, side)
+        rbox(x+1, yb-36, x+37, yb-12, c, h, d, 4)                 # 등받이
+        s.R(x+6, yb-26, x+32, yb-25, d)                            # 등받이 바느질선
+        rbox(x+3, yb-18, x+35, yb-7, h, None, None, 2)             # 방석
+        s.R(x+4, yb-11, x+34, yb-8, c)
+        rbox(x-6, yb-24, x+6, yb-4, c, h, d, 3)                    # 왼팔
+        rbox(x+32, yb-24, x+44, yb-4, c, h, d, 3)                  # 오른팔
+        s.R(x-6, yb-5, x+44, yb-2, 'O'); s.R(x-5, yb-5, x+43, yb-3, d)   # 받침
+        for lx in (x-4, x+40): s.R(lx, yb-2, lx+2, yb+1, 'woodD')
+        return
     if shp == 'b':     # 윙백: 높은 등받이 + 날개 + 나무 다리
         _shadow(s, x-4, x+40, yb+1)
         box3d(s, x+3, yb-50, 30, 32, 5, h, c, d)
@@ -120,8 +131,8 @@ def floorlamp(s, x, ytop, yb):
         s.R(x-5, yb-2, x+8, yb+3, 'O'); s.R(x-4, yb-1, x+7, yb+1, 'greyD')
         top = ytop - 6
         s.R(x, top + 10, x+2, yb-1, 'O')
-        cx, r = x - 12, 13
-        for t in range(0, 91, 3):
+        cx, r = x - 12, 12      # 봉 꼭대기에서 왼쪽으로 반원을 그리며 넘어간다(끊김 없이 1도 간격)
+        for t in range(0, 181):
             a = math.radians(t); px_, py_ = cx + r * math.cos(a), top + 10 - r * math.sin(a)
             s.R(round(px_), round(py_), round(px_) + 2, round(py_) + 2, 'O')
         hx = cx - r
@@ -145,4 +156,4 @@ def defs(iid):
         out.append(dict(key=k, name=nm))
     return out
 # 아치형 스탠드는 갓이 왼쪽으로 25px 나가 있다 → 조명 중심도 옮긴다
-LIGHT_SHIFT = {'lamp': {'a': (0, 0), 'b': (-25, 4), 'c': (0, 0)}}
+LIGHT_SHIFT = {'lamp': {'a': (0, 0), 'b': (-24, 4), 'c': (0, 0)}}
