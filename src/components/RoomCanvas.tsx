@@ -36,7 +36,7 @@ export function RoomCanvas({ state, onWorld, onPick }: {
       const ctx = cv.getContext('2d')!;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, iw, ih);
-      r.composite(ctx, world, s * dpr, state.hair, state.outfit, breath);
+      r.compositeFit(ctx, world, iw, ih, state.hair, state.outfit, breath);
     };
     paint();
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

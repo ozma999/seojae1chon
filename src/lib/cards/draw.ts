@@ -65,7 +65,7 @@ export async function drawCard(d: CardData): Promise<HTMLCanvasElement> {
   const roomAt = (x: number, y: number, w: number) => {
     const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = Math.round(world.level.H * (w / world.level.W));
     const tc = tmp.getContext('2d')!;
-    d.renderer.composite(tc, world, w / world.level.W, d.profile.hair, d.profile.outfit, 0);
+    d.renderer.compositeFit(tc, world, tmp.width, tmp.height, d.profile.hair, d.profile.outfit, 0);
     c.fillStyle = C.ink; c.fillRect(x - 6, y - 6, w + 12, tmp.height + 12);
     c.drawImage(tmp, x, y);
     return tmp.height;

@@ -209,5 +209,24 @@ export function createRenderer(la: LoadedArt) {
     ctx.drawImage(avatar(w, hair, outfit, breath), 0, 0, A.w, A.h, (L.foot[0] - A.w / 2) * s, (L.foot[1] - A.h + 1) * s, A.w * s, A.h * s);
     ctx.drawImage(w.front, 0, 0, L.W * s, L.H * s);
   }
-  return { art, renderWorld, composite };
+  /**
+   * 목표 크기(기기 픽셀)에 맞춰 그리기. 픽셀 그림을 1.5배·2.3배처럼 어중간한 배율로 늘리면
+   * 1px 선이 어떤 곳은 1칸, 어떤 곳은 2칸이 되어 스탠드 봉·소파 윤곽이 깨져 보인다.
+   * → 배율이 정수에 가까우면 그대로, 아니면 한 단계 큰 정수 배로 그린 뒤 부드럽게 줄인다(모든 선이 같은 굵기)
+   */
+  let off: HTMLCanvasElement | null = null;
+  function compositeFit(ctx: CanvasRenderingContext2D, w: World, tw: number, th: number, hair: number, outfit: number, breath: 0 | 1) {
+    const L = w.level, t = tw / L.W, k = Math.round(t);
+    if (k >= 1 && Math.abs(t - k) < 0.08) { composite(ctx, w, t, hair, outfit, breath); return; }
+    const K = Math.ceil(t);
+    off ??= document.createElement('canvas');
+    if (off.width !== L.W * K || off.height !== L.H * K) { off.width = L.W * K; off.height = L.H * K; }
+    const o = off.getContext('2d')!;
+    o.clearRect(0, 0, off.width, off.height);
+    composite(o, w, K, hair, outfit, breath);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(off, 0, 0, tw, th);
+    ctx.imageSmoothingEnabled = false;
+  }
+  return { art, renderWorld, composite, compositeFit };
 }
