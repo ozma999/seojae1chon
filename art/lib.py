@@ -212,41 +212,78 @@ def side_window(s,side,x_a,x_b,Ya,Yb,night=False):
     xm=(x_a+x_b)//2;s.line((xm,s.sidey(xm,Ya,side)),(xm,s.sidey(xm,Yb,side)),'wood')
     s.line((x_a,s.sidey(x_a,(Ya+Yb)/2,side)),(x_b,s.sidey(x_b,(Ya+Yb)/2,side)),'wood')
 Scene.side_window=side_window
-def side_shelf(s,side,x_front,Ytop,Ybot,rowsY,seed):
+def side_shelf(s,side,x_front,Ytop,Ybot,rowsY,seed,depth=12):
+    """옆벽 책장(입체): 앞면은 옆벽에서 방 안쪽으로 depth만큼(원근 비례) 떨어진 면.
+    선반 윗면·천판·앞쪽 옆판이 보여 벽에 납작하게 붙은 느낌을 없앤다."""
     import random
     r=random.Random(seed)
-    xb=s.bx0 if side=='L' else s.bx1-1
-    xs=range(xb-1,x_front,-1) if side=='L' else range(xb+1,x_front)
-    # carcass
-    for x in xs:
-        y0=s.sidey(x,Ytop,side);y1=s.sidey(x,Ybot,side)
-        s.R(x,int(y0),x+1,int(y1)+1,'deep')
-        for Yb in rowsY+[Ybot]:
-            yb=s.sidey(x,Yb,side);t=max(2,int(3*(x-s.vp[0])/(xb-s.vp[0])))
-            s.R(x,int(yb),x+1,int(yb)+t,'wood');s.P(x,int(yb),'woodL');s.P(x,int(yb)+t,'O')
-        s.P(x,int(y0),'O');s.P(x,int(y0)+1,'wood');s.P(x,int(y1)+1,'O')
-    # books per row
-    for i,Yb in enumerate(rowsY+[Ybot]):
+    vx=s.vp[0];xb=s.bx0 if side=='L' else s.bx1-1
+    sg=1 if side=='L' else -1
+    k=depth/abs(xb-vx)                                   # 앞면 x = 벽 x + sg*depth*sc(x),  sc=(x-vx)/(xb-vx)
+    fwd=lambda x: x+sg*k*abs(x-vx)                       # 벽 → 앞면
+    def back(fx):                                        # 앞면 → 벽(선형이라 바로 풀린다)
+        return (fx+k*vx)/(1+k) if side=='L' else (fx-k*vx)/(1-k) if False else (fx+(-k)*vx*(-1))/(1+k) if False else None
+    def inv(fx):
+        # L: fx = x + k*(x-vx)  → x = (fx + k*vx)/(1+k)   (x<vx 이므로 |x-vx| = vx-x → 부호 주의)
+        # 왼벽은 x<vx: fx = x + k*(vx-x) = x(1-k) + k*vx  → x = (fx - k*vx)/(1-k)
+        # 오른벽은 x>vx: fx = x - k*(x-vx) = x(1-k) + k*vx → 같은 식
+        return (fx-k*vx)/(1-k)
+    wall_cols=list(range(xb-1,x_front,-1)) if side=='L' else list(range(xb+1,x_front))
+    f0,f1=fwd(wall_cols[0]),fwd(x_front)
+    fcols=list(range(int(round(f0)),int(round(f1)),-sg)) if side=='L' else list(range(int(round(f0)),int(round(f1))))
+    rows=rowsY+[Ybot]
+    t_of=lambda x:max(2,int(3*abs(x-vx)/abs(xb-vx)))
+    # 1) 선반·천판 윗면(벽선과 앞면선 사이 띠) — 벽 기둥 쪽으로 보이는 면
+    for c in (range(min(int(f1),xb),max(int(f1),xb)+1)):
+        xw_front=inv(c)                                  # 이 화면 열의 앞면이 닿는 벽 위치
+        if not (min(x_front,xb)<=xw_front<=max(x_front,xb)): continue
+        for Yb in [Ytop]+rows:
+            yw=s.sidey(c,Yb,side) if min(x_front,xb)<=c<=max(x_front,xb) else None
+            yf=s.sidey(xw_front,Yb,side)
+            if yw is None: continue
+            a,b=sorted((int(yw),int(yf)))
+            col='woodL' if yf>yw else 'woodD'            # 눈높이 아래면 윗면(밝게), 위면 밑면(어둡게)
+            s.R(c,a,c+1,b+1,col)
+    # 2) 앞면: 뒷판(그늘) → 선반 앞턱 → 책
+    for fx in fcols:
+        xw=inv(fx)
+        y0=s.sidey(xw,Ytop,side);y1=s.sidey(xw,Ybot,side)
+        s.R(fx,int(y0),fx+1,int(y1)+1,'deep')
+        for Yb in rows:
+            yb=s.sidey(xw,Yb,side);tt=t_of(xw)
+            s.R(fx,int(yb),fx+1,int(yb)+tt,'wood');s.P(fx,int(yb),'woodL');s.P(fx,int(yb)+tt,'O')
+        s.P(fx,int(y0),'O');s.R(fx,int(y0)+1,fx+1,int(y0)+3,'wood');s.P(fx,int(y1)+1,'O')
+    for i,Yb in enumerate(rows):
         Ytopr=(rowsY[i-1] if i>0 else Ytop)+4
         cur=None;rem=0
-        for x in xs:
-            sc=(x-s.vp[0])/(xb-s.vp[0])
+        for fx in fcols:
+            xw=inv(fx);sc=abs(xw-vx)/abs(xb-vx)
             if rem<=0:
-                if r.random()<0.08: cur=None;rem=r.randint(2,4);
+                if r.random()<0.08: cur=None;rem=r.randint(2,4)
                 else: cur=(r.choice(BOOKS),r.randint(min(12,int(Yb-Ytopr)-2),max(min(12,int(Yb-Ytopr)-2),min(18,int(Yb-Ytopr)-1))));rem=r.randint(2,5);s.books+=1
                 first=True
             else: first=False
             rem-=1/sc
             if cur is None: continue
             (c,sh),h=cur
-            ya=s.sidey(x,Yb-h,side);yb=s.sidey(x,Yb,side)
-            s.R(x,int(ya),x+1,int(yb),sh if rem<=0 else c)
-            if first: s.R(x,int(ya),x+1,int(yb),'O')
-            s.P(x,int(ya)-1,'O')
-    # front edge post
+            ya=s.sidey(xw,Yb-h,side);yb=s.sidey(xw,Yb,side)
+            s.R(fx,int(ya),fx+1,int(yb),sh if rem<=0 else c)
+            if first: s.R(fx,int(ya),fx+1,int(yb),'O')
+            s.P(fx,int(ya)-1,'O')
+    # 3) 앞쪽 옆판(보는 사람 쪽으로 향한 면): 벽선에서 앞면까지 직사각형
     yf0=s.sidey(x_front,Ytop,side);yf1=s.sidey(x_front,Ybot,side)
-    s.R(min(x_front,x_front+(3 if side=='L' else -3)),int(yf0),max(x_front,x_front+(3 if side=='L' else -3))+1,int(yf1)+4,'wood')
-    s.line((x_front,yf0),(x_front,yf1+4))
+    a,b=sorted((x_front,int(round(f1))))
+    s.R(a,int(yf0),b+1,int(yf1)+4,'wood')
+    s.R(a,int(yf0),b+1,int(yf0)+2,'woodL')
+    if b-a>=8:                                            # 옆판 가운데 몰딩(움푹 들어간 판)
+        s.R(a+3,int(yf0)+5,b-2,int(yf1)-1,'woodD');s.R(a+4,int(yf0)+6,b-3,int(yf1)-2,'wood')
+        s.R(a+4,int(yf0)+6,b-3,int(yf0)+7,'woodL')
+    for Yb in rows: s.R(a+1,int(s.sidey(x_front,Yb,side))+1,b,int(s.sidey(x_front,Yb,side))+2,'woodD')   # 선반 끝 홈
+    s.R(a,int(yf0),a+1,int(yf1)+4,'O');s.R(b,int(yf0),b+1,int(yf1)+4,'O')
+    s.R(a,int(yf0),b+1,int(yf0)+1,'O');s.R(a,int(yf1)+4,b+1,int(yf1)+5,'O')
+    # 4) 바닥에 드리운 그림자(앞면 아래 체크무늬)
+    for c in range(a,b+1):
+        if (c+int(yf1))%2==0: s.P(c,int(yf1)+5,'O')
 Scene.side_shelf=side_shelf
 def avatar_draw(s,cx,foot,pose='read'):
     from avatar import make

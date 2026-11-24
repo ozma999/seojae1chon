@@ -302,7 +302,57 @@ def L4(theme='attic'):
        'ladder':[W_(lambda:rail_ladder(s,446,694,32,560,204,0.15,rail=railing))],
        'cushion':[W_(lambda:cushions(s,352,370))]}
     return s,items,(404,486)
-LEVELS=[L1,L2,L3,L4]
+# ---------- 스타일별 마감: 책장 색 · 벽 아래 판넬 · 다락방 지붕보 ----------
+SHELF_TINT={   # 나무색 → 스타일 색(배경 그림의 책장·창틀·계단·난간에 적용, 가구 레이어는 그대로)
+ 'space':{'woodL':'white','wood':'grey','woodD':'greyD'},          # 금속 선반
+ 'manga':{'woodL':'white','wood':'cream','woodD':'wallD'},         # 흰 책장
+ 'study':{'woodL':'wood','wood':'woodD','woodD':'O'},              # 짙은 마호가니
+}
+def theme_deco(s,tk):
+    T=s.T;FY=s.FY;px=s.im.load();W,H=s.W,s.H
+    wallcols={K[c] for c in T['wallk']+T['side']}
+    floorline=lambda x: FY if s.bx0<=x<s.bx1 else int(s.sidey(x,FY,'L' if x<s.bx0 else 'R'))
+    ceilline=lambda x: s.by0 if s.bx0<=x<s.bx1 else int(s.sidey(x,s.by0,'L' if x<s.bx0 else 'R'))+1   # 천장은 그대로
+    # 2) 책장 색(바닥은 건드리지 않는다)
+    m=SHELF_TINT.get(tk)
+    if m:
+        src={K[a]:K[b] for a,b in m.items()}
+        for x in range(W):
+            for y in range(max(0,ceilline(x)),min(H,floorline(x)+1)):
+                c=px[x,y]
+                if c in src: px[x,y]=src[c]
+    # 1) 벽 아래 판넬(다락방·서고): 벽색 픽셀만 칠해서 책장·창은 건드리지 않는다
+    if tk in('attic','study'):
+        ph=max(18,(FY-s.by0)//6)
+        panel,frame,rail=(('wallS','wallD','woodL') if tk=='attic' else ('woodD','wood','woodL'))
+        for x in range(W):
+            if s.bx0<=x<s.bx1: y0,y1=FY-ph,FY
+            else:
+                side='L' if x<s.bx0 else 'R'
+                y0,y1=int(s.sidey(x,FY-ph,side)),int(s.sidey(x,FY,side))
+            for y in range(max(0,y0),min(H,y1)):
+                if px[x,y] in wallcols:
+                    c=panel
+                    if y in(y0,y0+1): c=rail
+                    elif s.bx0<=x<s.bx1 and ((x-s.bx0)%24 in(0,1) or y in(y0+4,y1-3)): c=frame
+                    s.P(x,y,c)
+    # 3) 다락방: 천장 아래 A자 지붕보(서까래 두 개 + 가로 들보)
+    if tk=='attic':
+        sw=round(W*0.15);sh=round((FY-s.by0)*0.24)
+        t=max(3,W//96)
+        for side in(-1,1):
+            x0=0 if side<0 else W-1; x1=x0-side*sw*-1 if False else (x0+sw if side<0 else x0-sw)
+            for k in range(t):
+                s.line((x0,s.by0+sh+k),(x1,s.by0-2+k),'wood' if k else 'woodL')
+            s.line((x0,s.by0+sh+t),(x1,s.by0-2+t),'O');s.line((x0,s.by0+sh-1),(x1,s.by0-3),'O')
+        by=s.by0+3
+        s.R(0,by,W,by+t,'wood');s.R(0,by,W,by+1,'woodL');s.R(0,by+t,W,by+t+1,'O');s.R(0,by-1,W,by,'O')
+        for x in range(sw//2,W-sw//2,max(40,W//8)): s.R(x,by+1,x+2,by+t-1,'woodD')   # 들보 못 자리
+def _decorated(bld):
+    def f(tk):
+        s,items,foot=bld(tk);theme_deco(s,tk);return s,items,foot
+    return f
+LEVELS=[_decorated(b) for b in (L1,L2,L3,L4)]
 # 저녁·밤·새벽에 켜지는 조명이 밝히는 범위(타원 중심 x,y와 반지름). 아이템이 켜져 있을 때만 적용.
 LIGHTS=[
  [dict(id='desklamp',x=109,y=180,rx=58,ry=52),dict(id='pendant',x=144,y=34,rx=44,ry=32),dict(id='pendant',x=144,y=150,rx=132,ry=100),dict(id='lamp',x=267,y=158,rx=40,ry=52)],
