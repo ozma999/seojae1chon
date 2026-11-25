@@ -11,6 +11,7 @@ import { ago } from '@/components/Guestbook';
 import { canUseCamera } from '@/lib/books/barcode';
 import type { BookInfo } from '@/lib/books/nl';
 import type { Forest, ForestBook, ForestLoan } from '@/lib/data/types';
+import { seriesKey } from '@/lib/books/series';
 
 const day = 864e5;
 const dueText = (due: number, now: number) => {
@@ -32,6 +33,7 @@ export default function ForestPage() {
   const [pick, setPick] = useState<ForestBook | null>(null);
   const [reg, setReg] = useState<'scan' | 'paste' | 'photo' | null>(null);
   const [now, setNow] = useState(0);
+  const [open, setOpen] = useState<string | null>(null);
   const cam = useSyncExternalStore(() => () => {}, canUseCamera, () => false);
   const load = useCallback(async () => {
     try { const [a, b] = await Promise.all([repo.forest(), repo.forestActivity()]); setF(a); setLog(b); setNow(Date.now()); }
@@ -48,6 +50,19 @@ export default function ForestPage() {
       && (!onlyFree || b.out.length < b.copies))
       .sort((a, b) => a.title.localeCompare(b.title, 'ko') || (a.vol ?? 0) - (b.vol ?? 0));
   }, [f, q, onlyFree]);
+  // 시리즈는 한 줄로 묶고(이름·권수·대여 현황), 누르면 권별 현황
+  const groups = useMemo(() => {
+    const map = new Map<string, ForestBook[]>(), out: { key: string; name: string | null; vols: ForestBook[] }[] = [];
+    for (const b of books) {
+      if (!b.series) { out.push({ key: b.id, name: null, vols: [b] }); continue; }
+      const k = 's:' + seriesKey(b.series);
+      let g = map.get(k);
+      if (!g) { g = []; map.set(k, g); out.push({ key: k, name: b.series, vols: g }); }
+      g.push(b);
+    }
+    out.forEach((g) => g.vols.sort((a, b) => (a.vol ?? 0) - (b.vol ?? 0)));
+    return out;
+  }, [books]);
   const events = useMemo(() => log.flatMap((l) => [{ t: l.borrowedAt, kind: 'borrow' as const, l }, ...(l.returnedAt ? [{ t: l.returnedAt, kind: 'return' as const, l }] : [])])
     .sort((a, b) => b.t - a.t).slice(0, 80), [log]);
 
@@ -101,14 +116,40 @@ export default function ForestPage() {
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="도서관숲에서 찾기: 제목·작가·시리즈" aria-label="도서관숲에서 찾기" />
           <div className="chiprow"><button className="chip" aria-pressed={onlyFree} onClick={() => setOnlyFree((v) => !v)}>빌릴 수 있는 책만</button></div>
           <ul className="results books">
-            {books.slice(0, 400).map((b) => (
-              <li key={b.id}><button className="bookrow" onClick={() => setPick(b)}>
-                <b>{titleOf(b)}</b>
-                <span className="small"><span className={free(b) > 0 ? 'free' : 'busy'}>{free(b) > 0 ? '대여 가능' : '대여 중'}</span>
-                  <span className="muted">{[b.author, b.shelf, b.copies > 1 ? `${b.copies}권 중 ${free(b)}권 남음` : null].filter(Boolean).map((x) => ` · ${x}`).join('')}</span>
-                  {b.out[0] && <span className="muted"> · {b.out.map((l) => l.user.roomName).join(', ')} · {md(b.out[0].dueAt)}까지</span>}</span>
-              </button></li>
-            ))}
+            {groups.slice(0, 400).map((g) => {
+              if (!g.name) {
+                const b = g.vols[0];
+                return (
+                  <li key={g.key} className="series"><button className="bookrow" onClick={() => setPick(b)}>
+                    <b>{titleOf(b)}</b>
+                    <span className="small"><span className={free(b) > 0 ? 'free' : 'busy'}>{free(b) > 0 ? '대여 가능' : '대여 중'}</span>
+                      <span className="muted">{[b.author, b.shelf, b.copies > 1 ? `${b.copies}권 중 ${free(b)}권 남음` : null].filter(Boolean).map((x) => ` · ${x}`).join('')}</span>
+                      {b.out[0] && <span className="muted"> · {b.out.map((l) => l.user.roomName).join(', ')} · {md(b.out[0].dueAt)}까지</span>}</span>
+                  </button></li>
+                );
+              }
+              const outN = g.vols.filter((b) => free(b) <= 0).length, nums = g.vols.map((b) => b.vol).filter((v): v is number => v !== null);
+              return (
+                <li key={g.key} className="series">
+                  <button className="bookrow" onClick={() => setOpen(open === g.key ? null : g.key)} aria-expanded={open === g.key}>
+                    <b>{g.name} <span className="muted small">· {g.vols.length}권{nums.length ? ` (${Math.min(...nums)}~${Math.max(...nums)})` : ''}</span> <span className="caret">{open === g.key ? '▲' : '▼'}</span></b>
+                    <span className="small"><span className="free">{g.vols.length - outN}권 대여 가능</span>{outN > 0 && <span className="busy"> · {outN}권 대여 중</span>}
+                      <span className="muted">{g.vols[0].author ? ` · ${g.vols[0].author}` : ''}{g.vols[0].shelf ? ` · ${g.vols[0].shelf}` : ''}</span></span>
+                  </button>
+                  {open === g.key && (
+                    <div className="volgrid">
+                      {g.vols.map((b) => (
+                        <button key={b.id} className={`vol ${free(b) > 0 ? 'ok' : 'out'}`} onClick={() => setPick(b)} title={b.out[0] ? `${b.out[0].user.roomName} · ${md(b.out[0].dueAt)}까지` : '대여 가능'}>
+                          <b>{b.vol ?? '?'}</b>
+                          <small>{free(b) > 0 ? '가능' : `${b.out[0]?.user.roomName ?? '대여 중'}`}</small>
+                          {free(b) <= 0 && b.out[0] && <small className={b.out[0].dueAt < now ? 'late' : ''}>{md(b.out[0].dueAt)}</small>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
           {!books.length && <p className="muted small">{f.books.length ? '조건에 맞는 책이 없어요' : '아직 등록된 책이 없어요'}</p>}
         </section>
