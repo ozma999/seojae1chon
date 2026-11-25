@@ -164,7 +164,7 @@ export function demoRepo(): Repo {
       }
       const F = get().forest!;
       const books = F.books.map((b) => ({ ...b, out: F.loans.filter((l) => l.bookId === b.id && !l.returnedAt) }));
-      return { library: { id: 'demo-forest', slug: 'forest', name: '도서관숲', place: '데모 책장', loanDays: 14 }, books, canManage: true };
+      return { library: { id: 'demo-forest', slug: 'forest', name: '도서관숲', place: '그린팩토리 5F 입구(데모)', loanDays: 7 }, books, canManage: true };
     },
     async forestActivity() { return [...(get().forest?.loans ?? [])].sort((a, b) => Math.max(b.borrowedAt, b.returnedAt ?? 0) - Math.max(a.borrowedAt, a.returnedAt ?? 0)); },
     async forestBorrow(isbn) {
@@ -175,7 +175,7 @@ export function demoRepo(): Repo {
         if (out.some((l) => l.user.id === 'demo')) throw new Error('이미 빌린 책이에요');
         if (out.length >= b.copies) throw new Error('지금은 모두 대여 중이에요');
         const p = s.profile, t = Date.now();
-        F.loans.push({ id: 'l' + t, bookId: b.id, isbn, title: b.title, vol: b.vol, user: { id: 'demo', roomName: p.roomName, hair: p.hair, outfit: p.outfit }, borrowedAt: t, dueAt: t + 14 * 864e5, returnedAt: null });
+        F.loans.push({ id: 'l' + t, bookId: b.id, isbn, title: b.title, vol: b.vol, user: { id: 'demo', roomName: p.roomName, hair: p.hair, outfit: p.outfit }, borrowedAt: t, dueAt: t + 7 * 864e5, returnedAt: null, extended: 0 });
       });
     },
     async forestReturn(by) {
@@ -187,7 +187,7 @@ export function demoRepo(): Repo {
     },
     async forestExtend(loanId) {
       let d = 0;
-      save((s) => { const l = s.forest!.loans.find((x) => x.id === loanId); if (l) { l.dueAt = Math.max(l.dueAt, Date.now()) + 14 * 864e5; d = l.dueAt; } });
+      save((s) => { const l = s.forest!.loans.find((x) => x.id === loanId); if (!l) return; if ((l.extended ?? 0) >= 1) throw new Error('연장은 한 번만 할 수 있어요'); l.dueAt = Math.max(l.dueAt, Date.now()) + 7 * 864e5; l.extended = 1; d = l.dueAt; });
       return d;
     },
     async forestAdd(isbns) {

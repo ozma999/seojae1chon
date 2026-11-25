@@ -68,7 +68,7 @@ export default function ForestPage() {
   return (
     <div className="pad forest">
       <h1 className="h">{f.library.name}</h1>
-      <p className="muted small">{f.library.place ? `${f.library.place} · ` : ''}함께 쓰는 책장 · 책 {f.books.length.toLocaleString()}권 · 지금 대여 중 {out.length}권 · 대여 기간 {f.library.loanDays}일</p>
+      <p className="muted small">{f.library.place ? `${f.library.place} · ` : ''}함께 쓰는 책장 · 책 {f.books.length.toLocaleString()}권 · 지금 대여 중 {out.length}권 · 대여 {f.library.loanDays}일(연장 1회) · 반납 전날 메일 알림</p>
       <div className="bigbtns">
         <button className="btn primary big" onClick={() => (cam ? setScan('borrow') : (setTab('books'), say('목록에서 빌릴 책을 눌러 주세요')))}><b>빌리기</b><small>{cam ? '책 뒤 바코드 찍기' : '목록에서 고르기'}</small></button>
         <button className="btn big" onClick={() => (cam ? setScan('return') : mine.length ? say('아래 내가 빌린 책에서 반납을 눌러 주세요') : say('빌린 책이 없어요'))}><b>반납하기</b><small>{cam ? '찍으면 바로 반납' : '내가 빌린 책에서'}</small></button>
@@ -79,10 +79,10 @@ export default function ForestPage() {
           <ul className="loans">
             {mine.map((l) => (
               <li key={l.id} className={l.dueAt < now ? 'late' : ''}>
-                <span><b>{titleOf(l)}</b><small className="muted">{md(l.borrowedAt)} 빌림 · {md(l.dueAt)}까지</small></span>
+                <span><b>{titleOf(l)}</b><small className="muted">{md(l.borrowedAt)} 빌림 · {md(l.dueAt)}까지{(l.extended ?? 0) > 0 ? ' · 연장함' : ''}</small></span>
                 <span className="due">{dueText(l.dueAt, now)}</span>
                 <span className="chiprow tight">
-                  <button className="chip" onClick={() => act(() => repo.forestExtend(l.id), '반납일을 연장했어요')}>연장</button>
+                  {(l.extended ?? 0) < 1 && <button className="chip" onClick={() => act(() => repo.forestExtend(l.id), `반납일을 ${f.library.loanDays}일 연장했어요(연장은 한 번만)`)}>연장</button>}
                   <button className="chip" aria-pressed onClick={() => act(() => repo.forestReturn({ loanId: l.id }), '반납했어요')}>반납</button>
                 </span>
               </li>

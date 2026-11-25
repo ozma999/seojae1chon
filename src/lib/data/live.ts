@@ -106,11 +106,11 @@ export function liveRepo(): Repo {
       const { data: lib, error } = await sb.from('libraries').select('*').eq('slug', 'forest').maybeSingle();
       if (error || !lib) return null;   // 마이그레이션 전
       const [{ data: rows, error: e2 }, { data: can }] = await Promise.all([
-        sb.from('library_books').select('id,isbn,copies,shelf,created_at,book:books(title,author,publisher,series,vol,cover_url,genre),loans(id,user_id,borrowed_at,due_at,returned_at)').eq('library_id', lib.id),
+        sb.from('library_books').select('id,isbn,copies,shelf,created_at,book:books(title,author,publisher,series,vol,cover_url,genre),loans(*)').eq('library_id', lib.id),
         sb.rpc('library_manager', { lib: lib.id }),
       ]);
       if (e2) throw new Error(e2.message);
-      type L = { id: string; user_id: string; borrowed_at: string; due_at: string; returned_at: string | null };
+      type L = { id: string; user_id: string; borrowed_at: string; due_at: string; returned_at: string | null; extended?: number };
       type R = { id: string; isbn: string; copies: number; shelf: string | null; created_at: string; loans: L[];
         book: { title: string; author: string | null; publisher: string | null; series: string | null; vol: number | null; cover_url: string | null; genre: LibraryEntry['genre'] } | null };
       const list = (rows ?? []) as unknown as R[];
@@ -125,7 +125,7 @@ export function liveRepo(): Repo {
         series: r.book?.series ?? null, vol: r.book?.vol ?? null, coverUrl: r.book?.cover_url ?? null, genre: r.book?.genre ?? 'lit',
         copies: r.copies, shelf: r.shelf, addedAt: Date.parse(r.created_at),
         out: r.loans.filter((l) => !l.returned_at).map((l) => ({ id: l.id, bookId: r.id, isbn: r.isbn, title: r.book?.title ?? r.isbn, vol: r.book?.vol ?? null,
-          user: who.get(l.user_id) ?? { id: l.user_id, roomName: '(알 수 없음)', hair: 1, outfit: 0 }, borrowedAt: Date.parse(l.borrowed_at), dueAt: Date.parse(l.due_at), returnedAt: null })),
+          user: who.get(l.user_id) ?? { id: l.user_id, roomName: '(알 수 없음)', hair: 1, outfit: 0 }, borrowedAt: Date.parse(l.borrowed_at), dueAt: Date.parse(l.due_at), returnedAt: null, extended: l.extended ?? 0 })),
       }));
       return { library: { id: lib.id, slug: lib.slug, name: lib.name, place: lib.place, loanDays: lib.loan_days }, books, canManage: !!can } satisfies Forest;
     },

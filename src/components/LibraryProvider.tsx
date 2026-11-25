@@ -45,7 +45,7 @@ interface Ctx {
   updateEntry: Repo['updateEntry'];
   updateProfile: Repo['updateProfile'];
   /** 새 소식: 읽지 않은 방명록 · 받은 일촌 신청 */
-  news: { guest: number; requests: number };
+  news: { guest: number; requests: number; forest: number };
   refreshNews: () => void;
 }
 const LibraryCtx = createContext<Ctx | null>(null);
@@ -117,11 +117,15 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   }, [repo, title, profile]);
 
   // 새 소식(2분마다, 화면이 보일 때만)
-  const [news, setNews] = useState({ guest: 0, requests: 0 });
+  const [news, setNews] = useState({ guest: 0, requests: 0, forest: 0 });
   const refreshNews = useCallback(() => {
     if (repo.mode !== 'live') return;
-    Promise.all([repo.unreadGuestbook(), repo.ilchonRequests()]).then(([g, r]) => setNews({ guest: g, requests: r.length }), () => {});
-  }, [repo]);
+    Promise.all([repo.unreadGuestbook(), repo.ilchonRequests(), repo.forest().catch(() => null)]).then(([g, r, f]) => {
+      // 도서관숲: 반납일이 내일까지인(또는 지난) 내 대여
+      const soon = (f?.books ?? []).flatMap((b) => b.out).filter((l) => l.user.id === profile?.id && l.dueAt - Date.now() < 2 * 864e5).length;
+      setNews({ guest: g, requests: r.length, forest: soon });
+    }, () => {});
+  }, [repo, profile?.id]);
   useEffect(() => {
     if (!ready) return;
     queueMicrotask(refreshNews);

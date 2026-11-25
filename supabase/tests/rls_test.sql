@@ -165,6 +165,15 @@ select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
 do $$ begin assert public.forest_return('9788936434120') is not null, 'E 반납'; end $$;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
 do $$ begin assert public.forest_borrow('9788936434120') is not null, 'A 대여'; end $$;
-do $$ declare d timestamptz; begin d := public.forest_extend((select id from public.loans where user_id = auth.uid() and returned_at is null)); assert d > now() + interval '20 days', '연장'; end $$;
+do $$ declare d timestamptz; begin d := public.forest_extend((select id from public.loans where user_id = auth.uid() and returned_at is null)); assert d > now() + interval '10 days', '연장'; end $$;
+select pg_temp.expect_fail($$select public.forest_extend((select id from public.loans where user_id = auth.uid() and returned_at is null))$$, '두 번째 연장');
+-- 관리자가 지정되면 태초가족도 등록 못 함
+reset role;
+insert into public.library_admins (library_id, user_id) select id, '00000000-0000-0000-0000-00000000000a' from public.libraries where slug = 'forest';
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000f');
+select pg_temp.expect_fail($$insert into public.library_books (library_id, isbn) select id, '9788901234567' from public.libraries where slug = 'forest'$$, '관리자 아닌 태초가족 등록');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+insert into public.library_books (library_id, isbn) select id, '9788901234567' from public.libraries where slug = 'forest';
 reset role;
 \echo FOREST TESTS PASSED

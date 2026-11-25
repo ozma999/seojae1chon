@@ -23,7 +23,7 @@ function PixelIcon({ name, on }: { name: NavIconName; on: boolean }) {
 export function BottomNav() {
   const path = usePathname();
   const { news } = useLibrary();
-  const dot: Record<string, number> = { '/room': news.guest, '/ilchon': news.requests };
+  const dot: Record<string, number> = { '/room': news.guest, '/ilchon': news.requests, '/forest': news.forest };
   return (
     <nav className="tabbar" aria-label="메뉴">
       {TABS.map((t) => {

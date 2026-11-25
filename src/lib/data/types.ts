@@ -22,7 +22,7 @@ export interface LibraryEntry extends BookInfo {
 }
 export type ReadStatus = 'want' | 'reading' | 'done';
 export interface Who { id: string; roomName: string; hair: number; outfit: number }
-export interface ForestLoan { id: string; bookId: string; isbn: string; title: string; vol: number | null; user: Who; borrowedAt: number; dueAt: number; returnedAt: number | null }
+export interface ForestLoan { id: string; bookId: string; isbn: string; title: string; vol: number | null; user: Who; borrowedAt: number; dueAt: number; returnedAt: number | null; extended?: number }
 export interface ForestBook { id: string; isbn: string; title: string; author: string | null; publisher: string | null; series: string | null; vol: number | null;
   coverUrl: string | null; genre: LibraryEntry['genre']; copies: number; shelf: string | null; addedAt: number; out: ForestLoan[] }
 export interface Forest { library: { id: string; slug: string; name: string; place: string | null; loanDays: number }; books: ForestBook[]; canManage: boolean }
