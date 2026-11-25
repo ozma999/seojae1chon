@@ -8,7 +8,10 @@ import { useClock } from '@/hooks/useClock';
 import { autoTod } from '@/lib/room/time';
 import { GENRE_NAME, bragList, pickedTheme } from '@/lib/room/logic';
 import type { World } from '@/lib/room/render';
-import type { LibraryEntry, Profile } from '@/lib/data/types';
+import type { IlchonState, LibraryEntry, Profile } from '@/lib/data/types';
+import { Guestbook } from '@/components/Guestbook';
+import { LibrarySearch } from '@/components/LibrarySearch';
+import { READ_LABEL } from '@/components/BookSheet';
 import type { RoomState } from '@/lib/room/types';
 import { makeLines } from '@/lib/room/talk';
 import { monthCount, persona, seriesProgress, shelfTitle, towerInfo } from '@/lib/room/stats';
@@ -28,12 +31,21 @@ function FriendRoom() {
   const [err, setErr] = useState<string | null>(null);
   const [world, setWorld] = useState<World | null>(null);
   const [pick, setPick] = useState<LibraryEntry | null>(null);
+  const [rel, setRel] = useState<IlchonState | null>(null);
   const visited = useRef(false);
   const now = useClock();
   useEffect(() => {
     repo.loadRoom(id).then(setRoom, (e: Error) => setErr(e.message));
+    repo.ilchonState(id).then(setRel, () => setRel('none'));
     if (!visited.current) { visited.current = true; repo.visit(id).catch(() => {}); }
   }, [repo, id]);
+  const relAct = async (fn: () => Promise<unknown>, ok: string) => {
+    try { await fn(); setRel(await repo.ilchonState(id)); say(ok); } catch (e) { say((e as Error).message); }
+  };
+  const borrow = async (e: LibraryEntry) => {
+    try { await repo.writeGuestbook(id, `『${e.title}${e.vol ? ` ${e.vol}` : ''}』 빌려줄 수 있어?`, { kind: 'borrow', isbn: e.isbn }); say('방명록에 빌려 달라고 남겼어요'); setPick(null); }
+    catch (err) { say((err as Error).message); }
+  };
   const books = useMemo(() => room?.entries.map(toRoomBook) ?? [], [room]);
   const tod = now ? autoTod(now) : null;   // 시각이 바뀌어도 시간대가 같으면 방을 다시 그리지 않는다(캐릭터가 제자리로 돌아가지 않게)
   const state: RoomState | null = useMemo(() => room && tod && {
@@ -52,19 +64,25 @@ function FriendRoom() {
       <header className="bar">
         <Link href="/ilchon" className="back" aria-label="일촌으로">‹</Link>
         <h1 className="logo">{room.profile.roomName}</h1>
-        {world && <span className="lv">Lv.{world.li + 1} {world.level.name}</span>}
+        {rel === 'ilchon' && <span className="badge sm">일촌</span>}
+        {rel === 'none' && <button className="chip" onClick={() => relAct(() => repo.ilchonRequest(id), '일촌 신청을 보냈어요')}>+ 일촌 신청</button>}
+        {rel === 'sent' && <button className="chip" onClick={() => relAct(() => repo.ilchonRemove(id), '신청을 취소했어요')}>신청함 · 취소</button>}
+        {rel === 'received' && <button className="chip" aria-pressed onClick={() => relAct(() => repo.ilchonAccept(id), '일촌이 되었어요')}>일촌 수락</button>}
+        {world && <span className="lv">Lv.{world.li + 1}</span>}
       </header>
       <RoomCanvas state={state} cast={cast} lines={lines} onWorld={(w) => setWorld(w)}
         onPick={(h) => { if (h.book) setPick(room.entries.find((e) => e.id === h.book!.id) ?? null); }} />
-      <FriendStats room={room} mine={mine} books={books} world={world} now={now} onPick={setPick} self={me?.id === room.profile.id} />
+      <FriendStats room={room} mine={mine} books={books} world={world} now={now} onPick={setPick} self={me?.id === room.profile.id} rel={rel} />
       {pick && (
         <div className="sheetbg" onClick={() => setPick(null)}>
           <div className="sheet" role="dialog" aria-modal="true" aria-label={pick.title} onClick={(ev) => ev.stopPropagation()}>
             <button className="x" onClick={() => setPick(null)} aria-label="닫기">×</button>
             <h3>{pick.title}{pick.vol ? ` ${pick.vol}` : ''}</h3>
             <p className="muted">{[pick.author, pick.publisher, pick.pubDate, GENRE_NAME[pick.genre]].filter(Boolean).join(' · ')}</p>
+            {(pick.readStatus || pick.rating) && <p className="small">{[pick.readStatus ? READ_LABEL[pick.readStatus] : null, pick.rating ? '★'.repeat(pick.rating) + '☆'.repeat(5 - pick.rating) : null].filter(Boolean).join(' · ')}</p>}
             {pick.bragText && <p className="note">자랑 포인트: {pick.bragText}</p>}
-            {pick.comment && <p className="note">{room.profile.roomName}의 코멘트: {pick.comment}</p>}
+            {pick.comment && <p className="note">{room.profile.roomName}의 추천 코멘트: {pick.comment}</p>}
+            {pick.lendable && rel === 'ilchon' && me?.id !== room.profile.id && <button className="btn" onClick={() => borrow(pick)}>📚 빌려 달라고 하기</button>}
             {has(pick) ? <p className="muted small">내 서재에도 있는 책이에요</p> : (
               <button className="btn primary" onClick={async () => {
                 try { await add(pick, 'search', pick.format); say(`'${pick.title}'을(를) 내 서재에 꽂았어요`); } catch (e) { say((e as Error).message); }
@@ -81,15 +99,19 @@ const GENRES: Genre[] = ['lit', 'sf', 'manga', 'hum'];
 const SCENE: Record<string, string> = { attic: '다락방', space: '우주정거장', manga: '만화방', study: '서고' };
 
 /** 서재산책 아래 정보: 칭호 → 숫자 → 우리 사이 → 자랑 책장 → 장르 → 시리즈 → 최근 → 방 정보 */
-function FriendStats({ room, mine, books, world, now, onPick, self }: {
+function FriendStats({ room, mine, books, world, now, onPick, self, rel }: {
   room: { profile: Profile; entries: LibraryEntry[] }; mine: LibraryEntry[]; books: RoomBook[];
-  world: World | null; now: Date | null; onPick: (e: LibraryEntry) => void; self?: boolean;
+  world: World | null; now: Date | null; onPick: (e: LibraryEntry) => void; self?: boolean; rel: IlchonState | null;
 }) {
+  const [tab, setTab] = useState<'picks' | 'books' | 'guest'>('picks');
   const E = room.entries, n = E.length, t = now?.getTime();
   const tower = useMemo(() => towerInfo(E), [E]);
   const series = useMemo(() => seriesProgress(E).slice(0, 3), [E]);
   const us = useMemo(() => together(E, mine), [E, mine]);
   const brag = bragList(books).map((b) => E.find((e) => e.id === b.id)!).filter(Boolean);
+  // 추천·자랑: 자랑 책장(꽂은 순) → 추천 코멘트·별점 높은 순
+  const picks = [...brag, ...E.filter((e) => !e.bragAt && (e.comment || (e.rating ?? 0) >= 4))
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || Number(!!b.comment) - Number(!!a.comment) || b.addedAt - a.addedAt)].slice(0, 40);
   const recent = [...E].sort((a, b) => b.addedAt - a.addedAt).slice(0, 5);
   const per = persona(E, t);
   const g = Object.fromEntries(GENRES.map((k) => [k, E.filter((e) => e.genre === k).length])) as Record<Genre, number>;
@@ -107,7 +129,30 @@ function FriendStats({ room, mine, books, world, now, onPick, self }: {
         <div><b>+{now ? monthCount(E, now) : 0}</b><small>이번 달</small></div>
         <div><b>{tower.m < 10 ? tower.m.toFixed(1) : Math.round(tower.m)}<i>m</i></b><small>쌓은 높이</small></div>
       </div>
-      {!self && <section className="card us">
+      <div className="tabs3" role="tablist">
+        <button role="tab" aria-selected={tab === 'picks'} onClick={() => setTab('picks')}>추천·자랑 <small>{picks.length}</small></button>
+        <button role="tab" aria-selected={tab === 'books'} onClick={() => setTab('books')}>책 찾기 <small>{n.toLocaleString()}</small></button>
+        <button role="tab" aria-selected={tab === 'guest'} onClick={() => setTab('guest')}>방명록</button>
+      </div>
+      {tab === 'books' && <LibrarySearch entries={E} onPick={onPick} title={`${room.profile.roomName}의 책`} />}
+      {tab === 'guest' && <Guestbook host={room.profile.id} canWrite={!self && rel === 'ilchon'} isHost={!!self} />}
+      {tab === 'picks' && (picks.length > 0 ? (
+        <section className="card">
+          <h2>추천·자랑</h2>
+          <p className="muted small">자랑 책장 · 추천 코멘트 · 별점 4점 이상인 책</p>
+          <ul className="bragl">
+            {picks.map((e) => (
+              <li key={e.id}><button onClick={() => onPick(e)}><Cover e={e} />
+                <span>
+                  <b>{e.title}{e.series && e.vol ? ` ${e.vol}` : ''}</b>
+                  <small className="muted">{[e.author, e.bragAt ? '자랑 책장' : null, e.rating ? '★'.repeat(e.rating) : null, e.readStatus ? READ_LABEL[e.readStatus] : null, e.lendable ? '빌려줄 수 있어요' : null].filter(Boolean).join(' · ')}</small>
+                  {(e.comment || e.bragText) && <em>“{e.comment ?? e.bragText}”</em>}
+                </span></button></li>
+            ))}
+          </ul>
+        </section>
+      ) : <section className="card"><p className="muted small">아직 자랑하거나 추천한 책이 없어요.</p></section>)}
+      {tab === 'picks' && !self && <section className="card us">
         <h2>우리 사이</h2>
         <div className="usrow">
           <div className="pct"><b>{us.pct}<i>%</i></b><small>취향 겹침</small></div>
@@ -123,18 +168,7 @@ function FriendStats({ room, mine, books, world, now, onPick, self }: {
           </>
         )}
       </section>}
-      {brag.length > 0 && (
-        <section className="card">
-          <h2>자랑 책장</h2>
-          <ul className="bragl">
-            {brag.map((e) => (
-              <li key={e.id}><button onClick={() => onPick(e)}><Cover e={e} />
-                <span><b>{e.title}</b><small className="muted">{e.author ?? ''}</small>{e.bragText && <em>“{e.bragText}”</em>}</span></button></li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {n > 0 && (
+      {tab === 'picks' && n > 0 && (
         <section className="card">
           <h2>장르</h2>
           <ul className="genres">
@@ -144,7 +178,7 @@ function FriendStats({ room, mine, books, world, now, onPick, self }: {
           </ul>
         </section>
       )}
-      {series.length > 0 && (
+      {tab === 'picks' && series.length > 0 && (
         <section className="card">
           <h2>시리즈</h2>
           <ul className="series">
@@ -158,7 +192,7 @@ function FriendStats({ room, mine, books, world, now, onPick, self }: {
           </ul>
         </section>
       )}
-      {recent.length > 0 && (
+      {tab === 'picks' && recent.length > 0 && (
         <section className="card">
           <h2>최근 꽂은 책</h2>
           <div className="covers">

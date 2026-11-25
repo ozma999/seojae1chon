@@ -3,12 +3,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLibrary } from '@/components/LibraryProvider';
 import { BookSheet } from '@/components/BookSheet';
 import { Cover } from '@/components/Cover';
+import { LibrarySearch } from '@/components/LibrarySearch';
 import type { LibraryEntry } from '@/lib/data/types';
-import { GENRE_NAME, thicknessMm } from '@/lib/room/logic';
+import { thicknessMm } from '@/lib/room/logic';
 import { defaultLook } from '@/lib/room/look';
 import { monthCount, persona, seriesProgress, shelfTitle, towerInfo } from '@/lib/room/stats';
 import { useClock } from '@/hooks/useClock';
-import type { Genre } from '@/lib/room/types';
 
 /** 내 책장: 자랑하고 싶어지는 대시보드 + 내 책 목록 */
 export default function ShelfPage() {
@@ -24,6 +24,7 @@ export default function ShelfPage() {
   return (
     <div className="pad shelf">
       <h1 className="h">내 책장</h1>
+      <LibrarySearch entries={entries} onPick={setPick} mine />
       <section className="card titlecard">
         {profile?.cohort === 'founding' && <span className="badge">태초가족</span>}
         <small className="muted">나의 칭호</small>
@@ -71,7 +72,6 @@ export default function ShelfPage() {
           </div>
         </section>
       )}
-      <BookList onPick={setPick} />
       {pick && <BookSheet entry={pick} onClose={() => setPick(null)} />}
     </div>
   );
@@ -130,51 +130,3 @@ function TowerCanvas({ entries }: { entries: LibraryEntry[] }) {
 }
 
 /** 내 책 목록: 검색 + 정렬 + 거르기, 시리즈는 한 줄로 */
-function BookList({ onPick }: { onPick: (e: LibraryEntry) => void }) {
-  const { entries } = useLibrary();
-  const [q, setQ] = useState('');
-  const [sort, setSort] = useState<'recent' | 'title' | 'author' | 'thick'>('recent');
-  const [genre, setGenre] = useState<Genre | null>(null);
-  const [fmt, setFmt] = useState<'all' | 'paper' | 'ebook'>('all');
-  const rows = useMemo(() => {
-    const t = q.trim();
-    let list = entries.filter((e) => (!t || e.title.includes(t) || (e.author ?? '').includes(t) || e.isbn === t.replace(/-/g, ''))
-      && (!genre || e.genre === genre) && (fmt === 'all' || e.format === fmt));
-    const cmp = { recent: (a: LibraryEntry, b: LibraryEntry) => b.addedAt - a.addedAt, title: (a: LibraryEntry, b: LibraryEntry) => a.title.localeCompare(b.title, 'ko'),
-      author: (a: LibraryEntry, b: LibraryEntry) => (a.author ?? '힣').localeCompare(b.author ?? '힣', 'ko'), thick: (a: LibraryEntry, b: LibraryEntry) => thicknessMm(b) - thicknessMm(a) }[sort];
-    list = [...list].sort(cmp);
-    const seen = new Map<string, { e: LibraryEntry; n: number }>(), out: { e: LibraryEntry; n: number }[] = [];
-    for (const e of list) {
-      if (e.series && sort !== 'thick') {
-        const s = seen.get(e.series);
-        if (s) { s.n++; continue; }
-        const row = { e, n: 1 }; seen.set(e.series, row); out.push(row);
-      } else out.push({ e, n: 1 });
-    }
-    return out;
-  }, [entries, q, sort, genre, fmt]);
-  return (
-    <section className="card">
-      <h2>내 책 {entries.length.toLocaleString()}권</h2>
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="내 책장에서 찾기: 제목, 작가, ISBN" aria-label="내 책장에서 찾기" />
-      <div className="chiprow">
-        <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label="정렬" className="sortsel">
-          <option value="recent">최근 꽂은 순</option><option value="title">제목순</option><option value="author">작가순</option><option value="thick">두꺼운 순</option>
-        </select>
-        {(Object.keys(GENRE_NAME) as Genre[]).map((g) => <button key={g} className="chip" aria-pressed={genre === g} onClick={() => setGenre(genre === g ? null : g)}>{GENRE_NAME[g]}</button>)}
-        <button className="chip" aria-pressed={fmt === 'ebook'} onClick={() => setFmt(fmt === 'ebook' ? 'all' : 'ebook')}>전자책만</button>
-      </div>
-      <ul className="results">
-        {rows.slice(0, 300).map(({ e, n }) => (
-          <li key={e.id} onClick={() => onPick(e)} className="tap">
-            <div>
-              <b>{n > 1 ? `${e.series} (${n}권)` : e.title}</b>
-              <span className="muted small">{[e.author, GENRE_NAME[e.genre], e.format === 'ebook' ? '전자책' : null, e.bragAt ? '자랑 책장' : null].filter(Boolean).join(' · ')}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {!rows.length && <p className="muted small">{entries.length ? '조건에 맞는 책이 없어요' : '아직 꽂은 책이 없어요. 책 추가에서 시작해 보세요'}</p>}
-    </section>
-  );
-}

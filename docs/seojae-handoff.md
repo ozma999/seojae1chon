@@ -189,3 +189,33 @@ pixel-library-plan.html(기획서 v0.6 + 프로토타입)과 seojae-art-src 폴�
 
 이번 대화의 작업: [예: 남은 작업 4번 – 아바타 팔 3px와 표정 프레임]
 ```
+
+---
+
+## 8. 실서비스(Next.js + Supabase) 진행 기록 — v0.8 (2026-11-26)
+
+저장소 `ozma999/seojae1chon`(main → Vercel 자동 배포). 그림 원본은 `art/`(Python), 결과는 `public/art/`·`public/brand/`.
+
+### 화면·기능
+- **서재(홈)**: 픽셀 방(Lv.1~4) + 걸어 다니는 캐릭터(5초 대기 → 걷기·소파에 앉기·창/화분/책장 보기), 시작하기 안내 3단계, 내 방명록(새 글 표시), 칭호, 다음 아이템
+- **책 추가**: 바코드·제목 자동완성·시리즈 일괄, 연속 바코드, 텍스트 붙여넣기, **사진으로 등록(태초가족, Claude Haiku/Sonnet/Opus·세 모델 비교, 월 60장)**
+- **책장**: 맨 위 **책 찾기**(제목·작가·시리즈·출판사, 띄어쓰기 무시) + 빠른 필터(추천 코멘트·자랑·별점 4+·다 읽음·읽는 중·읽고 싶음·빌려줌·전자책), 칭호·책 탑·시리즈 완주·최근 꽂은 책
+- **책 정보 창**: 읽기 상태·별점·빌려줄 수 있어요·장르·자랑 책장·자랑 포인트·추천 코멘트
+- **꾸미기**: 방 스타일(다락방·우주정거장·만화방·서고), 물건별 모양 3택+색(러그·화분·소파·스탠드·샹들리에), 머리·옷, 서재 이름
+- **일촌**: 받은 일촌 신청(수락·거절), 서재산책(일촌만), 초대 코드·내 서재 링크, 공유 카드 4종
+- **일촌 서재**: 일촌 신청 버튼, 칭호·숫자 → 탭 [추천·자랑 | 책 찾기 | 방명록], 우리 사이(취향 겹침 %·이 서재에만 있는 책), 빌려 달라고 하기(방명록에 남음), 내 캐릭터가 놀러 가 말풍선
+
+### 일촌 규칙
+서로 초대한 사이 · 둘 다 태초가족 · 일촌 신청을 수락한 사이. 서재산책 목록과 방명록 쓰기는 일촌만. 서재 링크는 로그인한 누구나 열 수 있음(거기서 신청).
+
+### DB 마이그레이션(Supabase SQL Editor에서 순서대로)
+`supabase/migrations/` 파일 이름순. 최근: `20261124000000_invite_fix` · `20261125000000_photo_scans` · `20261126000000_social`. 로컬 검증: `bash supabase/tests/run_local.sh`.
+
+### 환경 변수(Vercel)
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `KAKAO_REST_KEY`, `GOOGLE_BOOKS_KEY`, `ANTHROPIC_API_KEY`(장르 AI 분류·사진 등록).
+
+### 그림 다시 만들기
+`cd art && python3 rooms.py && python3 split_art.py && python3 village.py && python3 export_actors.py`(캐릭터 시트). 새 머리: `avatar9.make` 앞머리 + `avatar2.STYLE` 한 줄. 새 꾸미기 모양: `variants.py`의 SHAPES/COLORS + 그리기 함수.
+
+### 남은 일
+사진 등록 모델 비교(키 준비 후 `scripts/photo-bakeoff.mts`), 나머지 꾸미기 물건 모양, 캐릭터 동작 추가(책 읽기·손 흔들기), 오류 알림 연결, 화면 단위 자동 테스트.

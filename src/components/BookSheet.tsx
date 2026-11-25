@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import type { LibraryEntry } from '@/lib/data/types';
+import type { LibraryEntry, ReadStatus } from '@/lib/data/types';
 import { GENRE_NAME, thicknessMm } from '@/lib/room/logic';
 import type { Genre } from '@/lib/room/types';
 import { useLibrary } from './LibraryProvider';
+
+export const READ_LABEL: Record<ReadStatus, string> = { want: '읽고 싶음', reading: '읽는 중', done: '다 읽음' };
 
 /** 책 상세: 자랑 책장 꽂기/빼기, 자랑 문구, 장르 고치기, 코멘트, 서재에서 빼기 */
 export function BookSheet({ entry, onClose }: { entry: LibraryEntry; onClose: () => void }) {
@@ -34,6 +36,19 @@ export function BookSheet({ entry, onClose }: { entry: LibraryEntry; onClose: ()
           <div><dt>형태</dt><dd>{e.format === 'ebook' ? '전자책' : e.hardcover ? '종이책 · 양장' : '종이책'}</dd></div>
           <div><dt>등록</dt><dd>{e.verified ? '실물 인증' : '검색으로 추가'}</dd></div>
         </dl>
+        <div className="readrow" role="group" aria-label="읽기 상태">
+          {(['want', 'reading', 'done'] as ReadStatus[]).map((s) => (
+            <button key={s} className="chip" aria-pressed={e.readStatus === s}
+              onClick={() => run(updateEntry(e.id, { readStatus: e.readStatus === s ? null : s }))}>{READ_LABEL[s]}</button>
+          ))}
+        </div>
+        <div className="stars" role="group" aria-label="별점">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} aria-label={`별 ${n}개`} aria-pressed={(e.rating ?? 0) >= n} onClick={() => run(updateEntry(e.id, { rating: e.rating === n ? null : n }))}>★</button>
+          ))}
+          <small className="muted">{e.rating ? `${e.rating}점` : '별점'}</small>
+        </div>
+        <label className="check"><input type="checkbox" checked={!!e.lendable} onChange={(ev) => run(updateEntry(e.id, { lendable: ev.target.checked }), ev.target.checked ? '일촌이 빌려 달라고 할 수 있어요' : undefined)} /> 일촌에게 빌려줄 수 있어요</label>
         <label className="field">장르 {e.userGenre ? '(직접 고침)' : e.genreSource === 'addcode' ? '(부가기호로 추정)' : '(추정 근거 없음)'}
           <select value={e.genre} onChange={(ev) => run(updateEntry(e.id, { userGenre: ev.target.value as Genre }), '장르를 고쳤어요')}>
             {(Object.keys(GENRE_NAME) as Genre[]).map((g) => <option key={g} value={g}>{GENRE_NAME[g]}</option>)}
@@ -47,7 +62,7 @@ export function BookSheet({ entry, onClose }: { entry: LibraryEntry; onClose: ()
             <textarea maxLength={80} value={brag} onChange={(ev) => setBrag(ev.target.value)} onBlur={() => brag !== (e.bragText ?? '') && run(updateEntry(e.id, { bragText: brag || null }), '저장했어요')} placeholder="이 책을 왜 자랑하고 싶은지 한두 문장" />
           </label>
         )}
-        <label className="field">내 한 줄 코멘트 (다른 사용자에게 보여요)
+        <label className="field">추천 코멘트 (일촌에게 보여요)
           <textarea maxLength={140} value={comment} onChange={(ev) => setComment(ev.target.value)} onBlur={() => comment !== (e.comment ?? '') && run(updateEntry(e.id, { comment: comment || null }), '저장했어요')} />
         </label>
         <button className="btn ghost danger" onClick={() => { if (confirm(`'${e.title}'을(를) 서재에서 뺄까요?`)) run(remove(e.id), '서재에서 뺐어요').then(onClose); }}>서재에서 빼기</button>

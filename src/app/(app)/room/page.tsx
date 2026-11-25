@@ -13,6 +13,8 @@ import { demoFill, demoReset } from '@/lib/data/demo';
 import { useClock } from '@/hooks/useClock';
 import type { LibraryEntry } from '@/lib/data/types';
 import { NameSheet } from '@/components/NameSheet';
+import { Guestbook } from '@/components/Guestbook';
+import { Onboarding } from '@/components/Onboarding';
 import { DEFAULT_ROOM_NAME } from '@/lib/room/names';
 
 const TODS: Tod[] = ['새벽', '낮', '노을', '밤'];
@@ -42,7 +44,8 @@ export default function RoomPage() {
     if (!world || !art) return;
     const n = entries.length, p = prev.current;
     if (p) {
-      if (world.li > p.li) say(`방이 넓어졌어요 · Lv.${world.li + 1} ${world.level.name}`);
+      if (p.n === 0 && n > 0) say('첫 책을 꽂았어요! 서재가 시작됐어요 🎉');
+      else if (world.li > p.li) say(`방이 넓어졌어요 · Lv.${world.li + 1} ${world.level.name}`);
       else {
         const got = art.itemdefs.filter((d) => d.th <= n && d.th > p.n);
         if (got.length) { const g = got[got.length - 1]; say(`새 아이템: ${g.name}${'vars' in g && g.vars ? ' · 꾸미기에서 모양을 골라요' : ''}`); }
@@ -65,11 +68,12 @@ export default function RoomPage() {
       </header>
       <div className="subbar">
         <span className="muted small">{profile!.title && <b className="ptitle">{profile!.title}</b>} 오늘 방문 <b className="today">{visits ?? '-'}</b></span>
-        <Link href="/ilchon" className="chip">서재산책 ›</Link>
+        <span className="chiprow tight"><Link href="/shelf#search" className="chip">내 책 찾기</Link><Link href="/ilchon" className="chip">서재산책 ›</Link></span>
       </div>
       <RoomCanvas state={state} onWorld={(w, r) => { setWorld(w); setArt(r.art); }}
         onPick={(h) => { if (h.book) setPick(entries.find((e) => e.id === h.book!.id) ?? null); else if (h.empty) say('책을 눌러 \'자랑 책장에 꽂기\'를 고르면 여기에 표지가 보여요'); }} />
       <section className="pad">
+        <Onboarding />
         <p className="stat"><b>{n.toLocaleString()}</b>권 · 종이 {entries.filter((e) => e.format === 'paper').length.toLocaleString()} / 전자 {entries.filter((e) => e.format === 'ebook').length.toLocaleString()}</p>
         {nx ? (
           <div className="next">
@@ -86,6 +90,7 @@ export default function RoomPage() {
           {TODS.map((t) => <button key={t} className="chip" aria-pressed={tod === t} onClick={() => setTod(t)}>{t}</button>)}
         </div>
         <p className="muted small">오늘 해 뜸 {hm(sun.rise)} · 해 짐 {hm(sun.set)} (서울 기준)</p>
+        {profile && <Guestbook host={profile.id} canWrite={false} isHost limit={3} />}
         {mode === 'demo' && (
           <div className="demo">
             <p className="small">데모 도구</p>

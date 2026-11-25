@@ -8,29 +8,32 @@ import { EBOOK_MARK } from './look';
 export interface LoadedArt {
   art: ArtManifest;
   img: (path: string) => HTMLImageElement;
+  /** 필요한 그림만 받아 둔다(이미 받은 건 건너뜀) */
+  need: (paths: Iterable<string>) => Promise<void>;
 }
+/**
+ * 그림 목록(manifest)만 먼저 받고, 그림은 지금 방에 필요한 것만 그때그때 받는다.
+ * (예전에는 모든 방·스타일·꾸미기 모양 340여 장을 처음에 한꺼번에 받았다)
+ */
 export async function loadArt(base = '/art'): Promise<LoadedArt> {
   const art: ArtManifest = await (await fetch(`${base}/manifest.json`)).json();
-  const paths = new Set<string>([art.avatar.img]);
-  for (const L of art.levels) {
-    Object.values(L.bg).forEach((p) => paths.add(p));
-    L.win.forEach((w) => Object.values(w.img).forEach((t) => Object.values(t).forEach((p) => paths.add(p))));
-    L.items.forEach((it) => paths.add(it.img));
-  }
-  const map = new Map<string, HTMLImageElement>();
-  await Promise.all(
-    [...paths].map(
-      (p) =>
-        new Promise<void>((ok, bad) => {
-          const im = new Image();
-          im.onload = () => ok();
-          im.onerror = () => bad(new Error('art load failed: ' + p));
-          im.src = `${base}/${p}`;
-          map.set(p, im);
-        }),
-    ),
-  );
-  return { art, img: (p) => map.get(p)! };
+  const map = new Map<string, HTMLImageElement>(), pending = new Map<string, Promise<void>>();
+  const one = (p: string) => {
+    let pr = pending.get(p);
+    if (!pr) {
+      pr = new Promise<void>((ok, bad) => {
+        const im = new Image();
+        im.onload = () => { map.set(p, im); ok(); };
+        im.onerror = () => { pending.delete(p); bad(new Error('art load failed: ' + p)); };
+        im.src = `${base}/${p}`;
+      });
+      pending.set(p, pr);
+    }
+    return pr;
+  };
+  const need = async (paths: Iterable<string>) => { await Promise.all([...new Set(paths)].map(one)); };
+  await need([art.avatar.img]);
+  return { art, img: (p) => map.get(p)!, need };
 }
 
 // ---------- 시간대 조명 ----------
@@ -143,6 +146,15 @@ const ctx2d = (c: HTMLCanvasElement) => c.getContext('2d', { willReadFrequently:
 
 export function createRenderer(la: LoadedArt) {
   const { art, img } = la;
+  /** 이 상태의 방을 그리는 데 필요한 그림을 받아 둔다(renderWorld 전에 부른다) */
+  async function prepare(st: RoomState) {
+    const { li } = pickLevel(art, st.books), L = art.levels[li];
+    const theme = st.theme ?? autoTheme(st.books), tod = st.tod ?? autoTod();
+    const on = (id: ItemId) => itemOn(art, id, st.books.length, st.itemsOff);
+    const paths = [L.bg[theme] ?? L.bg.attic, ...L.win.map((w) => (w.img[theme] ?? w.img.attic)[tod]),
+      ...L.items.filter((it) => on(it.id) && (!it.var || it.var === pickedVar(art, it.id, st.picks))).map((it) => it.img)];
+    await la.need(paths);
+  }
   const shade = makeShader(art.pal);
   const avCache = new Map<string, HTMLCanvasElement>();
 
@@ -313,5 +325,5 @@ export function createRenderer(la: LoadedArt) {
     ctx.drawImage(off, 0, 0, tw, th);
     ctx.imageSmoothingEnabled = false;
   }
-  return { art, renderWorld, composite, compositeFit, staticActors, actorFrame };
+  return { art, prepare, renderWorld, composite, compositeFit, staticActors, actorFrame };
 }

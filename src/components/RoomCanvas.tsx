@@ -22,6 +22,8 @@ function loadSheet(path: string) {
 }
 
 export interface CastMember { id: string; hair: number; outfit: number }
+// 방을 다시 그려도(책 추가·설정 변경) 캐릭터가 처음 자리로 돌아가지 않게, 레벨별 마지막 위치를 기억한다
+const lastPos = new Map<string, { x: number; y: number }>();
 
 /**
  * 방 그림. 캐릭터는 처음 몇 초 가만히 있다가 방 안을 돌아다닌다(소파에 앉기, 창문·화분·책장 바라보기).
@@ -40,7 +42,14 @@ export function RoomCanvas({ state, onWorld, onPick, cast, lines }: {
   const [err, setErr] = useState<string | null>(null);
   const [bubbles, setBubbles] = useState<{ id: string; text: string; x: number; y: number; tail: number }[]>([]);
   useEffect(() => { getRenderer().then(setR, (e) => setErr(String(e))); }, []);
-  const world = useMemo<World | null>(() => (r ? r.renderWorld(state) : null), [r, state]);
+  // 필요한 그림을 받은 뒤 방을 그린다(상태가 바뀌는 동안 늦게 온 결과는 버린다)
+  const [world, setWorld] = useState<World | null>(null);
+  useEffect(() => {
+    if (!r) return;
+    let alive = true;
+    r.prepare(state).then(() => { if (alive) setWorld(r.renderWorld(state)); }, (e) => alive && setErr(String(e)));
+    return () => { alive = false; };
+  }, [r, state]);
   useEffect(() => {
     if (r && world) onWorld?.(world, r);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,6 +65,7 @@ export function RoomCanvas({ state, onWorld, onPick, cast, lines }: {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let alive = true, raf = 0, last = 0, breath: 0 | 1 = 0;
     let sim: Sim | null = null;
+    let simKeys: string[] = [];
     let sheets: HTMLImageElement[] = [];
     let idx: ActorIndex | null = null;
 
@@ -116,13 +126,19 @@ export function RoomCanvas({ state, onWorld, onPick, cast, lines }: {
         sheets = await Promise.all(members.map((m) => loadSheet(idx!.sheets[m.hair]?.[m.outfit] ?? idx!.sheets[0][0])));
         if (!alive || !L.walk) return;
         const floor = { W: L.W, H: L.H, poly: L.walk.poly, blocks: world.blocks, poi: world.poi };
-        const starts = members.map((m, i) => ({ id: m.id, x: L.foot[0] + (i ? 30 : 0), y: L.foot[1] + (i ? 6 : 0) }));
-        sim = new Sim(floor, starts, { lines: () => linesRef.current?.() ?? [] });
+        const key = (m: CastMember) => `${m.id}:${world.li}:${L.W}`;
+        const remembered = members.every((m) => lastPos.has(key(m)));
+        const starts = members.map((m, i) => lastPos.get(key(m)) ? { id: m.id, ...lastPos.get(key(m))! } : { id: m.id, x: L.foot[0] + (i ? 30 : 0), y: L.foot[1] + (i ? 6 : 0) });
+        sim = new Sim(floor, starts, { lines: () => linesRef.current?.() ?? [], startIdle: remembered ? 1 : 5 });
+        simKeys = members.map(key);
         raf = requestAnimationFrame(tick);
       } catch { /* 시트를 못 불러오면 예전처럼 가만히 서 있는다 */ }
     })();
     window.addEventListener('resize', paint);
-    return () => { alive = false; cancelAnimationFrame(raf); window.removeEventListener('resize', paint); setBubbles([]); };
+    return () => {
+      alive = false; cancelAnimationFrame(raf); window.removeEventListener('resize', paint); setBubbles([]);
+      sim?.actors.forEach((a, i) => { const p = a.stand ?? [a.x, a.y]; if (simKeys[i]) lastPos.set(simKeys[i], { x: p[0], y: p[1] }); });
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [r, world, castKey]);
 

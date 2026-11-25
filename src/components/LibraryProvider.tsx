@@ -44,6 +44,9 @@ interface Ctx {
   remove: (id: string) => Promise<void>;
   updateEntry: Repo['updateEntry'];
   updateProfile: Repo['updateProfile'];
+  /** 새 소식: 읽지 않은 방명록 · 받은 일촌 신청 */
+  news: { guest: number; requests: number };
+  refreshNews: () => void;
 }
 const LibraryCtx = createContext<Ctx | null>(null);
 export const useLibrary = () => {
@@ -113,9 +116,22 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     return () => clearTimeout(t);
   }, [repo, title, profile]);
 
+  // 새 소식(2분마다, 화면이 보일 때만)
+  const [news, setNews] = useState({ guest: 0, requests: 0 });
+  const refreshNews = useCallback(() => {
+    if (repo.mode !== 'live') return;
+    Promise.all([repo.unreadGuestbook(), repo.ilchonRequests()]).then(([g, r]) => setNews({ guest: g, requests: r.length }), () => {});
+  }, [repo]);
+  useEffect(() => {
+    if (!ready) return;
+    queueMicrotask(refreshNews);
+    const id = setInterval(() => { if (!document.hidden) refreshNews(); }, 120000);
+    return () => clearInterval(id);
+  }, [ready, refreshNews]);
+
   const roomBooks = useMemo(() => entries.map(toRoomBook), [entries]);
   const value: Ctx = {
-    mode: repo.mode, repo, ready, jobs, error, profile, entries, tod, setTod, toast, say, reload,
+    mode: repo.mode, repo, ready, jobs, error, profile, entries, tod, setTod, toast, say, reload, news, refreshNews,
     roomBooks,
     bragSlots: useMemo(() => (art ? art.levels[pickLevel(art, roomBooks).li].brag.reduce((a, b) => a + b[2], 0) : 3), [art, roomBooks]),
     lookup: repo.lookup,

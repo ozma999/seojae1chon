@@ -1,11 +1,11 @@
 'use client';
 // 데모 모드: Supabase 없이 이 브라우저(localStorage)에만 저장한다
 import type { BookInfo } from '../books/nl';
-import type { AddMethod, InviteCode, LibraryEntry, Profile, Repo, RoomSummary } from './types';
+import type { AddMethod, GuestNote, InviteCode, LibraryEntry, Profile, Repo, RoomSummary } from './types';
 import catalog from './demo-catalog.json';
 
 const KEY = 'seojae-demo-v1';
-interface Saved { profile: Profile; entries: LibraryEntry[]; invites?: InviteCode[] }
+interface Saved { profile: Profile; entries: LibraryEntry[]; invites?: InviteCode[]; guestbook?: GuestNote[] }
 type CatalogBook = BookInfo & { own: boolean; brag: boolean; comment: string | null };
 export const DEMO_CATALOG = catalog as CatalogBook[];
 
@@ -126,5 +126,28 @@ export function demoRepo(): Repo {
       });
       return code;
     },
+    // 데모: 일촌은 예시 친구들, 방명록은 이 브라우저에만
+    async ilchonState(id) { return id === 'demo' ? 'self' : 'ilchon'; },
+    async ilchonRequest() { return 'ilchon'; },
+    async ilchonAccept() {},
+    async ilchonRemove() {},
+    async ilchonRequests() { return []; },
+    async guestbook(host) {
+      const all = get().guestbook ?? [];
+      if (host === 'demo' && !all.some((g) => g.host === 'demo')) {
+        return [{ id: 1, host: 'demo', author: { id: 'demo-friend-1', roomName: '새벽서가', hair: 4, outfit: 4 }, body: '서재 구경 잘하고 가요! 다음엔 제 서재도 놀러 오세요', kind: 'note', isbn: null, createdAt: Date.now() - 3600e3, readAt: null }];
+      }
+      return all.filter((g) => g.host === host).sort((a, b) => b.createdAt - a.createdAt);
+    },
+    async writeGuestbook(host, body, opts) {
+      save((s) => {
+        const p = s.profile;
+        const title = opts?.isbn ? (friendRoom(host).entries.find((e) => e.isbn === opts.isbn)?.title ?? null) : null;
+        (s.guestbook ??= []).push({ id: Date.now(), host, author: { id: 'demo', roomName: p.roomName, hair: p.hair, outfit: p.outfit }, body, kind: opts?.kind ?? 'note', isbn: opts?.isbn ?? null, bookTitle: title, createdAt: Date.now(), readAt: null });
+      });
+    },
+    async deleteGuestbook(id) { save((s) => { s.guestbook = (s.guestbook ?? []).filter((g) => g.id !== id); }); },
+    async unreadGuestbook() { return 0; },
+    async markGuestbookRead() {},
   };
 }

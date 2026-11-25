@@ -252,3 +252,48 @@ a.btn.primary { color: var(--pri-ink); }
 .cmp { display: grid; gap: 10px; margin-top: 10px; }
 .cmp .card { margin: 0; }
 .spines { margin: 6px 0 10px; padding-left: 22px; max-height: 220px; overflow: auto; }
+/* 책 정보: 읽기 상태·별점·빌려주기 */
+.readrow { display: flex; gap: 8px; margin: 6px 0 4px; }
+.stars { display: flex; align-items: center; gap: 2px; margin: 4px 0; }
+.stars button { border: 0; background: none; font-size: 26px; line-height: 1; padding: 2px; color: #d8c7a6; cursor: pointer; min-width: 36px; min-height: 36px; }
+.stars button[aria-pressed="true"] { color: var(--hl); text-shadow: 0 0 0 var(--ink); -webkit-text-stroke: 1px #b8862f; }
+.stars small { margin-left: 6px; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 40px; font-size: 14px; }
+.check input { width: 20px; height: 20px; accent-color: var(--pri); }
+/* 서재 책 찾기 */
+.libsearch input[type=search] { width: 100%; font-size: 16px; }
+.libsearch .quick .chip small { color: var(--muted); margin-left: 2px; }
+.results.books li { padding: 0; }
+.bookrow { display: grid; gap: 2px; width: 100%; padding: 10px 2px; background: none; border: 0; text-align: left; color: inherit; cursor: pointer; font: inherit; }
+.bookrow .cmt { font-size: 13px; color: var(--pri); }
+.vols { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 0 10px; }
+.chiprow.tight { margin: 0; flex-wrap: nowrap; }
+/* 서재산책 탭·방명록 */
+.tabs3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; background: var(--line); padding: 4px; border-radius: 12px; margin: 4px 0 12px; position: sticky; top: 0; z-index: 3; }
+.tabs3 button { border: 0; border-radius: 9px; padding: 10px 4px; background: transparent; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; }
+.tabs3 button[aria-selected="true"] { background: var(--panel); color: var(--pri); font-weight: 700; }
+.tabs3 small { font-size: 11px; opacity: .8; }
+.gbform { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; margin-bottom: 8px; }
+.gbform textarea { min-height: 48px; resize: vertical; }
+.gblist { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
+.gblist li { position: relative; display: grid; grid-template-columns: 28px 1fr; gap: 10px; padding: 10px 28px 10px 0; border-bottom: 1px solid var(--line); }
+.gblist li.new { background: #fff7e0; }
+.gblist canvas { width: 28px; height: 47px; image-rendering: pixelated; }
+.gbmeta { margin: 0; font-size: 13px; } .gbmeta a { text-decoration: none; color: var(--ink); }
+.gbbody { margin: 2px 0 0; white-space: pre-wrap; word-break: break-word; }
+.borrow { margin: 2px 0 0; font-size: 12px; color: var(--acc); font-weight: 700; }
+.gblist .x.small { position: absolute; right: 0; top: 6px; width: 28px; height: 28px; font-size: 18px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.navic { position: relative; display: inline-flex; }
+.navic .dot { position: absolute; top: -2px; right: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid var(--panel); }
+.reqrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; }
+.reqname { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+.reqname canvas { width: 28px; height: 47px; image-rendering: pixelated; }
+/* 시작하기 안내 */
+.onboard { position: relative; border: 2px solid var(--hl); }
+.onboard .x.small { position: absolute; right: 6px; top: 6px; width: 32px; height: 32px; border: 0; background: none; font-size: 20px; color: var(--muted); cursor: pointer; }
+.onboard ol { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 8px; }
+.onboard li { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; }
+.onboard li span:nth-child(2) { display: grid; }
+.onboard .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); border: 1px solid var(--line); font: 700 13px var(--pixel); }
+.onboard li.ok .num { background: var(--pri); color: var(--pri-ink); border-color: var(--pri); }
+.onboard li.ok b { text-decoration: line-through; color: var(--muted); }

@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_ICONS, gridPath, type NavIconName } from './navIcons';
+import { useLibrary } from './LibraryProvider';
 
 const TABS: { href: string; label: string; icon: NavIconName; also?: string[] }[] = [
   { href: '/room', label: '서재', icon: 'home' },
@@ -20,13 +21,15 @@ function PixelIcon({ name, on }: { name: NavIconName; on: boolean }) {
 }
 export function BottomNav() {
   const path = usePathname();
+  const { news } = useLibrary();
+  const dot: Record<string, number> = { '/room': news.guest, '/ilchon': news.requests };
   return (
     <nav className="tabbar" aria-label="메뉴">
       {TABS.map((t) => {
         const on = [t.href, ...(t.also ?? [])].some((h) => path.startsWith(h));
         return (
           <Link key={t.href} href={t.href} className={on ? 'on' : ''} aria-current={on ? 'page' : undefined}>
-            <PixelIcon name={t.icon} on={on} />
+            <span className="navic"><PixelIcon name={t.icon} on={on} />{dot[t.href] > 0 && <i className="dot" aria-label={`새 소식 ${dot[t.href]}개`} />}</span>
             <span>{t.label}</span>
           </Link>
         );

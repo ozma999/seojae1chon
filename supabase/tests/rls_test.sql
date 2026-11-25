@@ -56,7 +56,11 @@ do $$ begin assert (select count(*) from public.invite_codes) = 0, 'A의 초대 
 insert into public.visits (host) values ('00000000-0000-0000-0000-00000000000a');
 select pg_temp.expect_fail($$insert into public.visits (host) values ('00000000-0000-0000-0000-00000000000b')$$, '내 서재 방문');
 do $$ begin assert public.holders('9788936434120') = 1; end $$;
--- 서재산책 목록: 나 먼저, 책 수 집계
+-- 서재산책 목록: 나 먼저, 책 수 집계(A·B를 일촌으로 맺어 둔다)
+reset role;
+insert into public.ilchon (a, b, status, requested_by) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', 'accepted', '00000000-0000-0000-0000-00000000000a');
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
 do $$ declare r record; begin
   select * into r from public.room_list() limit 1;
   assert r.is_me and r.books = 0, '첫 줄은 나(B, 책 0권)';
@@ -91,6 +95,7 @@ end $$;
 set role authenticated;
 select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
 select pg_temp.expect_fail($$update public.profiles set cohort = 'founding' where id = auth.uid()$$, '태초가족 표시 위조');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000f');
 do $$ begin assert (select cohort from public.room_list() where id = '00000000-0000-0000-0000-00000000000f') = 'founding', 'room_list에 cohort'; end $$;
 reset role;
 -- 로그인 안 한 사용자(anon)는 아무것도 못 본다
@@ -100,6 +105,42 @@ select pg_temp.expect_fail($$select count(*) from public.profiles$$, 'anon 프�
 select pg_temp.expect_fail($$select public.create_invite()$$, 'anon 초대 코드 만들기');
 select pg_temp.expect_fail($$select * from public.room_list()$$, 'anon 서재 목록');
 do $$ begin assert public.check_invite('ZZZZZZ') = false; end $$;
+reset role;
+
+-- ===== 읽기 기록·일촌·방명록 =====
+reset role;
+insert into public.invite_codes (code, max_uses) values ('ZZZ234', 5);
+insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-0000-0000-00000000000c', 'c@x', '{"invite_code":"ZZZ234"}');
+set role authenticated;
+-- A: 읽기 기록은 쓸 수 있고, 실물 인증은 여전히 못 바꾼다
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+update public.user_books set read_status = 'done', rating = 5, lendable = true where isbn = '9788936434120';
+do $$ begin assert (select rating from public.user_books where isbn = '9788936434120' and user_id = auth.uid()) = 5, '별점 저장'; end $$;
+-- A와 C는 일촌이 아니다(같은 초대 코드여도 초대자가 없음)
+do $$ begin assert public.ilchon_state('00000000-0000-0000-0000-00000000000c') = 'none', 'A-C 일촌 아님'; end $$;
+select pg_temp.expect_fail($$insert into public.guestbook (host, body) values ('00000000-0000-0000-0000-00000000000c', '안녕')$$, '일촌 아닌 방명록 쓰기');
+do $$ begin assert not exists (select 1 from public.room_list() where id = '00000000-0000-0000-0000-00000000000c'), '목록에 C 없음'; end $$;
+-- A가 신청 → C가 수락
+do $$ begin assert public.ilchon_request('00000000-0000-0000-0000-00000000000c') = 'sent', '신청'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+do $$ begin assert public.ilchon_state('00000000-0000-0000-0000-00000000000a') = 'received', '받은 신청'; end $$;
+do $$ begin assert (select count(*) from public.ilchon_requests()) = 1, '받은 신청 목록'; end $$;
+select public.ilchon_accept('00000000-0000-0000-0000-00000000000a');
+do $$ begin assert exists (select 1 from public.room_list() where id = '00000000-0000-0000-0000-00000000000a'), '수락 후 목록에 A'; end $$;
+-- C가 A의 방명록에 글 → A만 읽음 표시 가능, B(일촌 아님)는 못 읽음
+insert into public.guestbook (host, body) values ('00000000-0000-0000-0000-00000000000a', '서재 멋져요');
+insert into public.guestbook (host, body, kind, isbn) values ('00000000-0000-0000-0000-00000000000a', '이 책 빌려줄 수 있어?', 'borrow', '9788936434120');
+select pg_temp.expect_fail($$insert into public.guestbook (host, body) values ('00000000-0000-0000-0000-00000000000c', '셀프')$$, '내 방명록에 쓰기');
+select pg_temp.expect_fail($$insert into public.guestbook (host, author, body) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', '사칭')$$, '남인 척 쓰기');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000b');
+do $$ begin assert (select count(*) from public.guestbook where host = '00000000-0000-0000-0000-00000000000a') = 0 or public.is_ilchon(auth.uid(), '00000000-0000-0000-0000-00000000000a'), '일촌 아니면 방명록 안 보임'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+do $$ begin assert (select count(*) from public.guestbook where host = auth.uid() and read_at is null) = 2, '새 글 2개'; end $$;
+update public.guestbook set read_at = now() where host = auth.uid();
+do $$ begin assert (select count(*) from public.guestbook where host = auth.uid() and read_at is null) = 0, '읽음 표시'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000c');
+select pg_temp.expect_fail($$update public.guestbook set body = '수정' where host = '00000000-0000-0000-0000-00000000000a'$$, '방명록 글 고치기');
+do $$ begin assert not exists (select 1 from public.guestbook where body = '수정'), '남의 글 수정 불가'; end $$;
 reset role;
 \o
 \echo ALL RLS TESTS PASSED

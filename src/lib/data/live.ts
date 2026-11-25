@@ -4,7 +4,7 @@ import type { BookInfo } from '../books/nl';
 import type { ItemId } from '../room/types';
 import { ENTRY_SELECT, rowToEntry, type Row } from './live-shared';
 import { supabaseBrowser } from '../supabase/client';
-import type { InviteCode, LibraryEntry, Profile, Repo, RoomSummary } from './types';
+import type { GuestNote, IlchonState, InviteCode, LibraryEntry, Profile, Repo, RoomSummary } from './types';
 
 export function liveRepo(): Repo {
   const sb = supabaseBrowser();
@@ -59,6 +59,49 @@ export function liveRepo(): Repo {
       if (error) throw new Error(error.message);
       return data as string;
     },
+    // ---- 일촌 ----
+    async ilchonState(id) {
+      const { data, error } = await sb.rpc('ilchon_state', { other: id });
+      if (error) return 'none';   // 마이그레이션 전
+      return data as IlchonState;
+    },
+    async ilchonRequest(id) {
+      const { data, error } = await sb.rpc('ilchon_request', { other: id });
+      if (error) throw new Error(error.message);
+      return data as IlchonState;
+    },
+    async ilchonAccept(id) { const { error } = await sb.rpc('ilchon_accept', { other: id }); if (error) throw new Error(error.message); },
+    async ilchonRemove(id) { const { error } = await sb.rpc('ilchon_remove', { other: id }); if (error) throw new Error(error.message); },
+    async ilchonRequests() {
+      const { data, error } = await sb.rpc('ilchon_requests');
+      if (error) return [];
+      return (data as { id: string; room_name: string; hair: number; outfit: number; created_at: string }[])
+        .map((r) => ({ id: r.id, roomName: r.room_name, hair: r.hair, outfit: r.outfit, createdAt: Date.parse(r.created_at) }));
+    },
+    // ---- 방명록 ----
+    async guestbook(host) {
+      const { data, error } = await sb.from('guestbook')
+        .select('id,host,body,kind,isbn,created_at,read_at,author:profiles!guestbook_author_fkey(id,room_name,hair,outfit),book:books(title)')
+        .eq('host', host).order('created_at', { ascending: false }).limit(100);
+      if (error) { if (/guestbook/.test(error.message)) return []; throw new Error(error.message); }
+      type R = { id: number; host: string; body: string; kind: 'note' | 'borrow'; isbn: string | null; created_at: string; read_at: string | null;
+        author: { id: string; room_name: string; hair: number; outfit: number } | null; book: { title: string } | null };
+      return (data as unknown as R[]).map((r): GuestNote => ({
+        id: r.id, host: r.host, body: r.body, kind: r.kind, isbn: r.isbn, bookTitle: r.book?.title ?? null,
+        author: { id: r.author?.id ?? '', roomName: r.author?.room_name ?? '(알 수 없음)', hair: r.author?.hair ?? 1, outfit: r.author?.outfit ?? 0 },
+        createdAt: Date.parse(r.created_at), readAt: r.read_at ? Date.parse(r.read_at) : null,
+      }));
+    },
+    async writeGuestbook(host, body, opts) {
+      const { error } = await sb.from('guestbook').insert({ host, body: body.trim().slice(0, 200), kind: opts?.kind ?? 'note', isbn: opts?.isbn ?? null });
+      if (error) throw new Error(/row-level security/.test(error.message) ? '일촌만 방명록을 남길 수 있어요' : error.message);
+    },
+    async deleteGuestbook(id) { const { error } = await sb.from('guestbook').delete().eq('id', id); if (error) throw new Error(error.message); },
+    async unreadGuestbook() {
+      const { count, error } = await sb.from('guestbook').select('id', { count: 'exact', head: true }).eq('host', await uid()).is('read_at', null);
+      return error ? 0 : count ?? 0;
+    },
+    async markGuestbookRead() { await sb.from('guestbook').update({ read_at: new Date().toISOString() }).eq('host', await uid()).is('read_at', null); },
     async seriesVolumes(series, publisher) {
       const r = await fetch(`/api/books/series?${new URLSearchParams({ name: series, ...(publisher ? { publisher } : {}) })}`);
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? '시리즈를 불러오지 못했어요');
@@ -90,6 +133,9 @@ export function liveRepo(): Repo {
       if ('comment' in patch) row.comment = patch.comment;
       if ('bragAt' in patch) row.brag_at = patch.bragAt ? new Date(patch.bragAt).toISOString() : null;
       if ('bragText' in patch) row.brag_text = patch.bragText;
+      if ('readStatus' in patch) row.read_status = patch.readStatus;
+      if ('rating' in patch) row.rating = patch.rating;
+      if ('lendable' in patch) row.lendable = patch.lendable;
       const { error } = await sb.from('user_books').update(row).eq('id', id);
       if (error) throw new Error(error.message);
     },

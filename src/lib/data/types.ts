@@ -13,7 +13,17 @@ export interface LibraryEntry extends BookInfo {
   bragText: string | null;
   look: BookLook | null;
   addedAt: number;
+  /** 읽기 기록: 읽고 싶음 / 읽는 중 / 다 읽음 */
+  readStatus?: ReadStatus | null;
+  /** 별점 1~5 */
+  rating?: number | null;
+  /** 빌려줄 수 있어요 */
+  lendable?: boolean;
 }
+export type ReadStatus = 'want' | 'reading' | 'done';
+export type IlchonState = 'self' | 'ilchon' | 'sent' | 'received' | 'none';
+export interface GuestNote { id: number; host: string; author: { id: string; roomName: string; hair: number; outfit: number }; body: string; kind: 'note' | 'borrow'; isbn: string | null; bookTitle?: string | null; createdAt: number; readAt: number | null }
+export interface IlchonRequest { id: string; roomName: string; hair: number; outfit: number; createdAt: number }
 export interface Profile {
   id: string;
   roomName: string;
@@ -50,7 +60,7 @@ export interface Repo {
   /** 여러 권 한 번에(이미 있는 책은 건너뜀) */
   addMany(infos: BookInfo[], opts: { method: AddMethod }): Promise<LibraryEntry[]>;
   remove(id: string): Promise<void>;
-  updateEntry(id: string, patch: { userGenre?: Genre | null; comment?: string | null; bragAt?: number | null; bragText?: string | null }): Promise<void>;
+  updateEntry(id: string, patch: { userGenre?: Genre | null; comment?: string | null; bragAt?: number | null; bragText?: string | null; readStatus?: ReadStatus | null; rating?: number | null; lendable?: boolean }): Promise<void>;
   updateProfile(patch: Partial<Omit<Profile, 'id'>>): Promise<void>;
   // 서재산책
   listRooms(): Promise<RoomSummary[]>;
@@ -60,4 +70,16 @@ export interface Repo {
   // 초대
   myInvites(): Promise<InviteCode[]>;
   createInvite(): Promise<string>;
+  // 일촌
+  ilchonState(id: string): Promise<IlchonState>;
+  ilchonRequest(id: string): Promise<IlchonState>;
+  ilchonAccept(id: string): Promise<void>;
+  ilchonRemove(id: string): Promise<void>;
+  ilchonRequests(): Promise<IlchonRequest[]>;
+  // 방명록(일촌평)
+  guestbook(host: string): Promise<GuestNote[]>;
+  writeGuestbook(host: string, body: string, opts?: { kind?: 'note' | 'borrow'; isbn?: string | null }): Promise<void>;
+  deleteGuestbook(id: number): Promise<void>;
+  unreadGuestbook(): Promise<number>;
+  markGuestbookRead(): Promise<void>;
 }
