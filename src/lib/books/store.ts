@@ -85,8 +85,15 @@ export async function withPages(b: BookInfo): Promise<BookInfo> {
  * 순서: 서지 캐시(DB) → 국립중앙도서관(키가 있을 때) → 카카오(키가 있을 때) → 구글 북스 → 데모 목록
  * 찾은 결과는 캐시에 저장한다(같은 책은 다시 검색하지 않음).
  */
-export async function lookupBooks(q: { isbn?: string; title?: string }): Promise<{ books: BookInfo[]; source: string }> {
+export async function lookupBooks(q: { isbn?: string; title?: string; author?: string }): Promise<{ books: BookInfo[]; source: string }> {
   const db = supabaseService();
+  // 작가로 찾기(카카오 person 검색). 시리즈는 1권부터
+  if (q.author && kkey()) {
+    const pages = await Promise.all([1, 2].map((page) => cached(`ka|${q.author}|${page}`, async () => (await kakaoSearch(kkey()!, { author: q.author, page })).books).catch(() => [])));
+    const books = sortResults(onePerVolume(pages.flat()), '');
+    if (db && books.length) await upsertBooks(db, books.map((b) => ({ ...bookToRow(b), source: 'kakao' })));
+    return { books, source: 'kakao' };
+  }
   const isbn = q.isbn ? normalizeIsbn(q.isbn) : null;
   if (q.isbn && !isbn) throw new Error('ISBN 형식이 맞지 않아요');
   const query = isbn ? { isbn } : { title: q.title };

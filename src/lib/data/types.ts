@@ -58,7 +58,7 @@ export interface InviteCode { code: string; uses: number; maxUses: number; expir
 export interface Repo {
   mode: 'demo' | 'live';
   load(): Promise<{ profile: Profile; entries: LibraryEntry[] }>;
-  lookup(q: { isbn?: string; title?: string }): Promise<BookInfo[]>;
+  lookup(q: { isbn?: string; title?: string; author?: string }): Promise<BookInfo[]>;
   /** 시리즈의 모든 권(1권부터) */
   seriesVolumes(series: string, publisher?: string | null): Promise<BookInfo[]>;
   add(info: BookInfo, opts: { method: AddMethod; format?: 'paper' | 'ebook' }): Promise<LibraryEntry>;

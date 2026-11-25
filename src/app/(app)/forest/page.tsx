@@ -6,6 +6,7 @@ import { AvatarThumb } from '@/components/AvatarThumb';
 import { ScanOnce } from '@/components/ScanOnce';
 import { BulkScan, PasteBulk } from '@/components/BulkAdd';
 import { PhotoScan } from '@/components/PhotoScan';
+import { ForestSearchAdd } from '@/components/ForestSearchAdd';
 import { ago } from '@/components/Guestbook';
 import { canUseCamera } from '@/lib/books/barcode';
 import type { BookInfo } from '@/lib/books/nl';
@@ -145,6 +146,8 @@ export default function ForestPage() {
         <section className="card">
           <h2>책 등록 <small className="muted">관리자</small></h2>
           <p className="muted small">도서관숲 책장에 있는 책을 등록해요. 이미 등록된 책은 건너뛰어요. 책장에는 <Link href="/forest/poster">QR 안내문</Link>을 인쇄해 붙여 두세요.</p>
+          <ForestSearchAdd have={new Set(f.books.map((b) => b.isbn))} onAdd={async (isbns) => { const r = await repo.forestAdd(isbns); await load(); return `도서관숲에 ${r.added}권 등록했어요${r.skipped ? ` (${r.skipped}권 제외)` : ''}`; }} />
+          <h3 className="sub2">한꺼번에 등록</h3>
           <div className="bulkbtns">
             {cam && <button className="btn" onClick={() => setReg('scan')}><b>연속 바코드</b><small>책 뒷면을 차례로</small></button>}
             <button className="btn" onClick={() => setReg('photo')}><b>사진으로</b><small>책장 사진을 AI가 읽어요</small></button>

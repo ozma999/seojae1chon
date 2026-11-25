@@ -29,10 +29,10 @@ export function normalizeKakao(d: KDoc): BookInfo | null {
 
 export const KAKAO_URL = 'https://dapi.kakao.com/v3/search/book';
 /** 서버 전용(REST 키). 한 번에 최대 50권, page는 1부터 */
-export async function kakaoSearch(key: string, q: { isbn?: string; title?: string; page?: number }, fetchImpl: typeof fetch = fetch) {
+export async function kakaoSearch(key: string, q: { isbn?: string; title?: string; author?: string; page?: number }, fetchImpl: typeof fetch = fetch) {
   const u = new URL(KAKAO_URL);
-  u.searchParams.set('query', q.isbn ?? (q.title ?? '').trim());
-  u.searchParams.set('target', q.isbn ? 'isbn' : 'title');
+  u.searchParams.set('query', q.isbn ?? (q.author ?? q.title ?? '').trim());
+  u.searchParams.set('target', q.isbn ? 'isbn' : q.author ? 'person' : 'title');
   u.searchParams.set('size', '50');
   u.searchParams.set('page', String(q.page ?? 1));
   const r = await fetchImpl(u, { headers: { Authorization: `KakaoAK ${key}` } });

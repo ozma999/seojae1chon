@@ -160,7 +160,7 @@ export function liveRepo(): Repo {
       return (await r.json()).books as BookInfo[];
     },
     async lookup(q) {
-      const r = await fetch(`/api/books/lookup?${new URLSearchParams(q.isbn ? { isbn: q.isbn } : { q: q.title ?? '' })}`);
+      const r = await fetch(`/api/books/lookup?${new URLSearchParams(q.isbn ? { isbn: q.isbn } : q.author ? { author: q.author } : { q: q.title ?? '' })}`);
       if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? '검색 실패');
       return (await r.json()).books as BookInfo[];
     },
