@@ -89,13 +89,15 @@ export function BulkScan({ onClose }: { onClose: () => void }) {
 type Row = { line: string; state: 'finding' | 'done'; options: BookInfo[]; pick: number; on: boolean };
 
 /** ② 텍스트 붙여넣기: 줄마다 책을 찾아 가장 맞는 책을 고르고, 확인 후 한 번에 꽂기 */
-export function PasteBulk({ onClose }: { onClose: () => void }) {
+export function PasteBulk({ onClose, preset, method = 'search', title = '텍스트 붙여넣기', note }: {
+  onClose: () => void; preset?: string[]; method?: 'search' | 'photo'; title?: string; note?: string;
+}) {
   const { lookup, addMany, entries, say } = useLibrary();
-  const [text, setText] = useState('');
+  const [text, setText] = useState(preset ? preset.join('\n') : '');
   const [rows, setRows] = useState<Row[] | null>(null);
   const has = (b?: BookInfo) => !!b && entries.some((e) => e.isbn === b.isbn);
-  const run = async () => {
-    const lines = cleanLines(text);
+  const run = async (given?: string[]) => {
+    const lines = given ?? cleanLines(text);
     if (!lines.length) { say('책 제목이나 ISBN을 한 줄에 하나씩 넣어 주세요'); return; }
     setRows(lines.map((line) => ({ line, state: 'finding', options: [], pick: 0, on: false })));
     let next = 0;
@@ -111,17 +113,20 @@ export function PasteBulk({ onClose }: { onClose: () => void }) {
     };
     await Promise.all([worker(), worker(), worker()]);
   };
+  const started = useRef(false);
+  useEffect(() => { if (preset && !started.current) { started.current = true; queueMicrotask(() => run(preset)); } });
   const chosen = (rows ?? []).filter((r) => r.on && r.options[r.pick]).map((r) => r.options[r.pick]);
   const finish = () => {
     onClose();
-    addMany(chosen, 'search').then((a) => say(`${a.length}권을 서재에 꽂았어요`), (e: Error) => say(`저장 실패: ${e.message}`));
+    addMany(chosen, method).then((a) => say(`${a.length}권을 서재에 꽂았어요`), (e: Error) => say(`저장 실패: ${e.message}`));
   };
   const busy = rows?.some((r) => r.state === 'finding');
   return (
     <div className="sheetbg">
-      <div className="sheet bulk" role="dialog" aria-modal="true" aria-label="텍스트 붙여넣기 등록">
+      <div className="sheet bulk" role="dialog" aria-modal="true" aria-label={`${title} 등록`}>
         <button className="x" onClick={onClose} aria-label="닫기">×</button>
-        <h3>텍스트 붙여넣기</h3>
+        <h3>{title}</h3>
+        {note && <p className="small muted">{note}</p>}
         {!rows ? (
           <>
             <p className="small muted">책장 사진에서 글자를 복사해 붙여 넣으세요. 메모장의 책 목록이나 ISBN 목록도 돼요(한 줄에 한 권, 최대 100줄).</p>
@@ -130,7 +135,7 @@ export function PasteBulk({ onClose }: { onClose: () => void }) {
               <li>안드로이드: 구글 렌즈로 사진 → <b>텍스트 → 모두 선택 → 복사</b></li>
             </ul>
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={8} placeholder={'채식주의자\n소년이 온다\n9788936434120'} aria-label="붙여 넣을 책 목록" />
-            <button className="btn primary" onClick={run} disabled={!text.trim()}>책 찾기</button>
+            <button className="btn primary" onClick={() => run()} disabled={!text.trim()}>책 찾기</button>
           </>
         ) : (
           <>
@@ -158,7 +163,7 @@ export function PasteBulk({ onClose }: { onClose: () => void }) {
               })}
             </ul>
             <div className="row">
-              <button className="btn" onClick={() => setRows(null)}>다시 붙여넣기</button>
+              {!preset && <button className="btn" onClick={() => setRows(null)}>다시 붙여넣기</button>}
               <button className="btn primary" style={{ flex: 1 }} disabled={busy || !chosen.length} onClick={finish}>{chosen.length}권 한 번에 꽂기</button>
             </div>
           </>

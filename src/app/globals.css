@@ -247,3 +247,8 @@ a.btn.primary { color: var(--pri-ink); }
 .g-lit i { background: #cc4a3c; } .g-sf i { background: #2c447e; } .g-manga i { background: #e8b84a; } .g-hum i { background: #3a6e44; }
 .genres small { text-align: right; color: var(--muted); }
 .roominfo { text-align: center; margin: 4px 0 12px; }
+/* 사진으로 등록 */
+.btn.disabled { opacity: .6; pointer-events: none; }
+.cmp { display: grid; gap: 10px; margin-top: 10px; }
+.cmp .card { margin: 0; }
+.spines { margin: 6px 0 10px; padding-left: 22px; max-height: 220px; overflow: auto; }

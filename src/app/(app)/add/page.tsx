@@ -8,19 +8,20 @@ import { GENRE_NAME } from '@/lib/room/logic';
 import { missingVols } from '@/lib/books/series';
 import { canUseCamera, getDetector } from '@/lib/books/barcode';
 import { BulkScan, PasteBulk } from '@/components/BulkAdd';
+import { PhotoScan } from '@/components/PhotoScan';
 
 
 const looksLikeIsbn = (s: string) => /^[\d\s-]{10,17}[\dXx]?$/.test(s.trim()) && s.replace(/\D/g, '').length >= 10;
 
 export default function AddPage() {
-  const { lookup, add, entries, say } = useLibrary();
+  const { lookup, add, entries, say, profile } = useLibrary();
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<BookInfo[] | null>(null);
   const [method, setMethod] = useState<AddMethod>('search');
   const [scan, setScan] = useState(false);
   const [series, setSeries] = useState<BookInfo | null>(null);
-  const [bulk, setBulk] = useState<'scan' | 'paste' | null>(null);
+  const [bulk, setBulk] = useState<'scan' | 'paste' | 'photo' | null>(null);
   const canScan = useSyncExternalStore(() => () => {}, canUseCamera, () => false);
   const seq = useRef(0);
   const lastQuery = useRef('');   // 바코드·찾기 버튼으로 이미 검색한 말은 자동완성이 다시 부르지 않게
@@ -93,12 +94,14 @@ export default function AddPage() {
         <h2>한꺼번에 등록</h2>
         <p className="muted small">책이 많을 때는 모아서 한 번에 꽂아요.</p>
         <div className="bulkbtns">
+          {profile?.cohort === 'founding' && <button className="btn" onClick={() => setBulk('photo')}><b>사진으로 등록</b><small>책장 사진을 AI가 읽어요 · 태초가족</small></button>}
           {canScan && <button className="btn" onClick={() => setBulk('scan')}><b>연속 바코드</b><small>책 뒷면을 차례로 찍기</small></button>}
           <button className="btn" onClick={() => setBulk('paste')}><b>텍스트 붙여넣기</b><small>책장 사진 글자·책 목록</small></button>
         </div>
       </section>
       {bulk === 'scan' && <BulkScan onClose={() => setBulk(null)} />}
       {bulk === 'paste' && <PasteBulk onClose={() => setBulk(null)} />}
+      {bulk === 'photo' && <PhotoScan onClose={() => setBulk(null)} />}
       {series && <SeriesSheet book={series} method={method} onClose={() => setSeries(null)} onOne={() => { addOne(series); setSeries(null); }}
         onSearch={(text) => { setSeries(null); setQ(text); }} />}
     </div>
