@@ -33,7 +33,9 @@ export async function proxy(request: NextRequest) {
   }
   if (!user && path !== '/' && !PUBLIC.some((p) => path.startsWith(p)) && !path.startsWith('/api/books/')) {
     const to = request.nextUrl.clone();
-    to.pathname = '/';
+    // 화면을 바로 열려던 경우(책장 QR·서재 링크)는 로그인 뒤 그 화면으로 돌아오게
+    if (!path.startsWith('/api/')) { to.pathname = '/login'; to.search = ''; to.searchParams.set('next', path); }
+    else to.pathname = '/';
     return NextResponse.redirect(to);
   }
   return response;

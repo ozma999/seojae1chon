@@ -21,13 +21,15 @@ function beep(ok = true) {
 type ScanItem = { isbn: string; state: 'finding' | 'found' | 'missing' | 'owned'; book?: BookInfo };
 
 /** ① 연속 바코드: 카메라를 켜 둔 채 찍을 때마다 목록에 쌓고, 마지막에 한 번에 꽂기 */
-export function BulkScan({ onClose }: { onClose: () => void }) {
+export function BulkScan({ onClose, onAdd, skip, title = '연속 바코드', skipLabel = '이미 서재에 있음' }: {
+  onClose: () => void; onAdd?: (books: BookInfo[]) => Promise<string>; skip?: Set<string>; title?: string; skipLabel?: string;
+}) {
   const { lookup, addMany, entries, say } = useLibrary();
   const video = useRef<HTMLVideoElement>(null);
   const [items, setItems] = useState<ScanItem[]>([]);
   const [msg, setMsg] = useState('카메라를 켜는 중…');
   const seen = useRef(new Set<string>());
-  const owned = useRef(new Set(entries.map((e) => e.isbn)));
+  const owned = useRef(skip ?? new Set(entries.map((e) => e.isbn)));
   useEffect(() => {
     let stream: MediaStream | null = null, stop = false;
     const found = async (isbn: string) => {
@@ -62,25 +64,25 @@ export function BulkScan({ onClose }: { onClose: () => void }) {
   const finish = () => {
     if (!ready.length) { onClose(); return; }
     onClose();
-    addMany(ready.map((i) => i.book!), 'barcode').then((a) => say(`${a.length}권을 서재에 꽂았어요`), (e: Error) => say(`저장 실패: ${e.message}`));
+    (onAdd ? onAdd(ready.map((i) => i.book!)) : addMany(ready.map((i) => i.book!), 'barcode').then((a) => `${a.length}권을 서재에 꽂았어요`)).then(say, (e: Error) => say(`저장 실패: ${e.message}`));
   };
   return (
     <div className="sheetbg">
-      <div className="sheet bulk" role="dialog" aria-modal="true" aria-label="연속 바코드 등록">
+      <div className="sheet bulk" role="dialog" aria-modal="true" aria-label={title}>
         <button className="x" onClick={onClose} aria-label="닫기">×</button>
-        <h3>연속 바코드</h3>
+        <h3>{title}</h3>
         <div className="scanner"><video ref={video} playsInline muted /></div>
         <p className="small muted">{msg}</p>
         <p className="small"><b>{ready.length}</b>권 찾음{items.some((i) => i.state === 'owned') ? ` · 이미 있는 책 ${items.filter((i) => i.state === 'owned').length}권은 건너뜀` : ''}</p>
         <ul className="tray">
           {items.map((i) => (
             <li key={i.isbn} className={i.state}>
-              <span>{i.state === 'finding' ? '찾는 중…' : i.state === 'owned' ? '이미 서재에 있음' : i.state === 'missing' ? `못 찾음 (${i.isbn})` : i.book!.title}</span>
+              <span>{i.state === 'finding' ? '찾는 중…' : i.state === 'owned' ? skipLabel : i.state === 'missing' ? `못 찾음 (${i.isbn})` : i.book!.title}</span>
               {i.state !== 'finding' && <button className="link" onClick={() => { setItems((x) => x.filter((y) => y.isbn !== i.isbn)); seen.current.delete(i.isbn); }} aria-label="목록에서 빼기">빼기</button>}
             </li>
           ))}
         </ul>
-        <button className="btn primary" onClick={finish}>{ready.length ? `${ready.length}권 한 번에 꽂기` : '닫기'}</button>
+        <button className="btn primary" onClick={finish}>{ready.length ? `${ready.length}권 한 번에 ${onAdd ? '등록' : '꽂기'}` : '닫기'}</button>
       </div>
     </div>
   );
@@ -89,13 +91,14 @@ export function BulkScan({ onClose }: { onClose: () => void }) {
 type Row = { line: string; state: 'finding' | 'done'; options: BookInfo[]; pick: number; on: boolean };
 
 /** ② 텍스트 붙여넣기: 줄마다 책을 찾아 가장 맞는 책을 고르고, 확인 후 한 번에 꽂기 */
-export function PasteBulk({ onClose, preset, method = 'search', title = '텍스트 붙여넣기', note }: {
+export function PasteBulk({ onClose, preset, method = 'search', title = '텍스트 붙여넣기', note, onAdd, skip }: {
   onClose: () => void; preset?: string[]; method?: 'search' | 'photo'; title?: string; note?: string;
+  onAdd?: (books: BookInfo[]) => Promise<string>; skip?: Set<string>;
 }) {
   const { lookup, addMany, entries, say } = useLibrary();
   const [text, setText] = useState(preset ? preset.join('\n') : '');
   const [rows, setRows] = useState<Row[] | null>(null);
-  const has = (b?: BookInfo) => !!b && entries.some((e) => e.isbn === b.isbn);
+  const has = (b?: BookInfo) => !!b && (skip ? skip.has(b.isbn) : entries.some((e) => e.isbn === b.isbn));
   const run = async (given?: string[]) => {
     const lines = given ?? cleanLines(text);
     if (!lines.length) { say('책 제목이나 ISBN을 한 줄에 하나씩 넣어 주세요'); return; }
@@ -118,7 +121,7 @@ export function PasteBulk({ onClose, preset, method = 'search', title = '텍스�
   const chosen = (rows ?? []).filter((r) => r.on && r.options[r.pick]).map((r) => r.options[r.pick]);
   const finish = () => {
     onClose();
-    addMany(chosen, method).then((a) => say(`${a.length}권을 서재에 꽂았어요`), (e: Error) => say(`저장 실패: ${e.message}`));
+    (onAdd ? onAdd(chosen) : addMany(chosen, method).then((a) => `${a.length}권을 서재에 꽂았어요`)).then(say, (e: Error) => say(`저장 실패: ${e.message}`));
   };
   const busy = rows?.some((r) => r.state === 'finding');
   return (
@@ -164,7 +167,7 @@ export function PasteBulk({ onClose, preset, method = 'search', title = '텍스�
             </ul>
             <div className="row">
               {!preset && <button className="btn" onClick={() => setRows(null)}>다시 붙여넣기</button>}
-              <button className="btn primary" style={{ flex: 1 }} disabled={busy || !chosen.length} onClick={finish}>{chosen.length}권 한 번에 꽂기</button>
+              <button className="btn primary" style={{ flex: 1 }} disabled={busy || !chosen.length} onClick={finish}>{chosen.length}권 한 번에 {onAdd ? '등록' : '꽂기'}</button>
             </div>
           </>
         )}

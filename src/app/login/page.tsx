@@ -18,6 +18,7 @@ function Login() {
   const live = isLive();
   const sp = useSearchParams();
   const invited = (sp.get('code') ?? '').toUpperCase().slice(0, 6);
+  const nextRaw = sp.get('next'), nextPath = nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//') ? nextRaw : '/room';
   const [mode, setMode] = useState<'in' | 'up' | 'reset'>(invited || sp.get('join') ? 'up' : 'in');
   const ERR: Record<string, string> = {
     device: '링크를 요청한 휴대폰(같은 브라우저)에서 열어 주세요. 다른 기기에서 열면 보안 때문에 동작하지 않아요. 비밀번호를 잊었다면 다시 요청해 주세요.',
@@ -40,7 +41,7 @@ function Login() {
       if (mode === 'in') {
         const { error } = await sb.auth.signInWithPassword({ email, password: pw });
         if (error) throw new Error(error.message.includes('Invalid') ? '이메일이나 비밀번호가 맞지 않아요' : error.message);
-        router.push('/room'); router.refresh();
+        router.push(nextPath); router.refresh();
       } else if (mode === 'up') {
         const { data: valid } = await sb.rpc('check_invite', { p_code: code });
         if (!valid) throw new Error('초대 코드가 맞지 않거나 이미 쓰였어요');

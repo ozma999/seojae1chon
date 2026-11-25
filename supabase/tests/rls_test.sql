@@ -144,3 +144,27 @@ do $$ begin assert not exists (select 1 from public.guestbook where body = '수�
 reset role;
 \o
 \echo ALL RLS TESTS PASSED
+
+-- ===== 도서관숲 =====
+-- F(태초가족)는 관리자 없이도 책을 등록할 수 있다, E(일반)는 못 한다
+set role authenticated;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000f');
+insert into public.library_books (library_id, isbn, copies) select id, '9788936434120', 1 from public.libraries where slug = 'forest';
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
+select pg_temp.expect_fail($$insert into public.library_books (library_id, isbn) select id, '9788901234567' from public.libraries where slug = 'forest'$$, '일반 사용자 책 등록');
+-- E가 빌림 → 한 권뿐이라 A는 못 빌림 → 기록은 모두 보임
+do $$ begin assert public.forest_borrow('9788936434120') is not null, 'E 대여'; end $$;
+select pg_temp.expect_fail($$select public.forest_borrow('9788936434120')$$, '같은 책 두 번 빌리기');
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+select pg_temp.expect_fail($$select public.forest_borrow('9788936434120')$$, '모두 대여 중');
+do $$ begin assert (select count(*) from public.loans where returned_at is null) = 1, 'A도 대여 기록이 보임'; end $$;
+select pg_temp.expect_fail($$select public.forest_return(null, (select id from public.loans limit 1))$$, '남의 대여 반납');
+select pg_temp.expect_fail($$insert into public.loans (library_book_id, user_id, due_at) select id, auth.uid(), now() from public.library_books limit 1$$, '대여 기록 직접 쓰기');
+-- E가 반납 → A가 빌릴 수 있음
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000e');
+do $$ begin assert public.forest_return('9788936434120') is not null, 'E 반납'; end $$;
+select pg_temp.as_user('00000000-0000-0000-0000-00000000000a');
+do $$ begin assert public.forest_borrow('9788936434120') is not null, 'A 대여'; end $$;
+do $$ declare d timestamptz; begin d := public.forest_extend((select id from public.loans where user_id = auth.uid() and returned_at is null)); assert d > now() + interval '20 days', '연장'; end $$;
+reset role;
+\echo FOREST TESTS PASSED

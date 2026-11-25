@@ -15,7 +15,7 @@ async function scan(file: File, model: PhotoModelKey): Promise<ScanResult> {
 const won = (n: number) => (n < 10 ? n.toFixed(1) : Math.round(n).toLocaleString()) + '원';
 
 /** 태초가족: 책장 사진 → AI가 책등을 읽음 → 확인 후 한 번에 꽂기. '세 모델 비교'로 정확도·비용을 볼 수 있다 */
-export function PhotoScan({ onClose }: { onClose: () => void }) {
+export function PhotoScan({ onClose, onAdd, skip }: { onClose: () => void; onAdd?: (books: import('@/lib/books/nl').BookInfo[]) => Promise<string>; skip?: Set<string> }) {
   const { say } = useLibrary();
   const [model, setModel] = useState<PhotoModelKey>('sonnet');
   const [compare, setCompare] = useState(false);
@@ -51,7 +51,7 @@ export function PhotoScan({ onClose }: { onClose: () => void }) {
     setPreset({ lines, note: `AI가 ${lines.length}권을 읽었어요${low ? `(흐릿한 ${low}권 포함)` : ''} · 비용 약 ${won(cost)}. 맞는 책만 체크해 주세요.` });
   };
 
-  if (preset) return <PasteBulk onClose={onClose} preset={preset.lines} method="photo" title="사진으로 등록" note={preset.note} />;
+  if (preset) return <PasteBulk onClose={onClose} preset={preset.lines} method="photo" title="사진으로 등록" note={preset.note} onAdd={onAdd} skip={skip} />;
   return (
     <div className="sheetbg">
       <div className="sheet bulk" role="dialog" aria-modal="true" aria-label="사진으로 등록">

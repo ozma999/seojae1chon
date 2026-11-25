@@ -15,6 +15,7 @@ import type { LibraryEntry } from '@/lib/data/types';
 import { NameSheet } from '@/components/NameSheet';
 import { Guestbook } from '@/components/Guestbook';
 import { Onboarding } from '@/components/Onboarding';
+import { ForestCard } from '@/components/ForestCard';
 import { DEFAULT_ROOM_NAME } from '@/lib/room/names';
 
 const TODS: Tod[] = ['새벽', '낮', '노을', '밤'];
@@ -74,6 +75,7 @@ export default function RoomPage() {
         onPick={(h) => { if (h.book) setPick(entries.find((e) => e.id === h.book!.id) ?? null); else if (h.empty) say('책을 눌러 \'자랑 책장에 꽂기\'를 고르면 여기에 표지가 보여요'); }} />
       <section className="pad">
         <Onboarding />
+        <ForestCard />
         <p className="stat"><b>{n.toLocaleString()}</b>권 · 종이 {entries.filter((e) => e.format === 'paper').length.toLocaleString()} / 전자 {entries.filter((e) => e.format === 'ebook').length.toLocaleString()}</p>
         {nx ? (
           <div className="next">

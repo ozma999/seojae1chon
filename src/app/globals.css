@@ -88,7 +88,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .charbtn canvas { width: 56px; height: 94px; image-rendering: pixelated; }
 .charbtn[aria-pressed="true"] { border-color: var(--pri); }
 .charbtn:disabled { opacity: .45; cursor: not-allowed; }
-.tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); max-width: 520px; margin: 0 auto;
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(6, 1fr); max-width: 520px; margin: 0 auto;
   background: var(--panel); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
 .tabbar a { display: grid; grid-template-rows: 24px 14px; justify-items: center; align-content: center; row-gap: 4px; min-height: 58px; padding: 6px 0;
   font: 500 12px/14px var(--font); color: var(--muted); text-decoration: none; position: relative; }
@@ -297,3 +297,30 @@ a.btn.primary { color: var(--pri-ink); }
 .onboard .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); border: 1px solid var(--line); font: 700 13px var(--pixel); }
 .onboard li.ok .num { background: var(--pri); color: var(--pri-ink); border-color: var(--pri); }
 .onboard li.ok b { text-decoration: line-through; color: var(--muted); }
+/* 도서관숲 */
+.bigbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0 12px; }
+.btn.big { min-height: 72px; display: grid; gap: 2px; align-content: center; }
+.btn.big b { font: 700 18px var(--pixel); } .btn.big small { font-size: 12px; opacity: .85; }
+.loans { list-style: none; padding: 0; margin: 0; display: grid; }
+.loans li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.mine .loans li { grid-template-columns: 1fr auto auto; }
+.loans li span:first-child, .loans li > span:nth-child(2) { display: grid; }
+.loans .due { font: 700 13px var(--pixel); color: var(--pri); white-space: nowrap; }
+.loans li.late .due, .late { color: var(--danger); }
+.loans .who canvas, .feed canvas { width: 28px; height: 47px; image-rendering: pixelated; }
+.free { color: #2f7a46; font-weight: 700; } .busy { color: var(--danger); font-weight: 700; }
+.feed { list-style: none; padding: 0; margin: 0; display: grid; }
+.feed li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.feed.small li { grid-template-columns: 1fr; font-size: 13px; padding: 4px 0; }
+.feed li > span:nth-child(2) { display: grid; }
+.tag { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); }
+.tag.borrow { background: var(--hl); border-color: var(--hl); } .tag.return { background: #dfeee3; border-color: #b9d8c1; }
+.manage .row { align-items: center; gap: 8px; }
+.forest-card { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; text-decoration: none; color: var(--ink); border: 2px solid var(--hl); }
+.forest-card .tree { font-size: 28px; }
+.poster { max-width: 520px; margin: 0 auto; padding: 24px 20px 120px; display: grid; justify-items: center; text-align: center; gap: 10px; }
+.poster h1 { font: 700 40px var(--pixel); margin: 6px 0 0; }
+.poster .lead { font-size: 18px; margin: 0; }
+.poster canvas { width: 240px; height: 240px; border: 3px solid var(--ink); border-radius: 12px; padding: 8px; background: #fff; }
+.poster ol { text-align: left; font-size: 16px; line-height: 1.7; padding-left: 22px; }
+@media print { .tabbar, .noprint, .demobar { display: none !important; } body { background: #fff; } .poster { padding-bottom: 0; } }

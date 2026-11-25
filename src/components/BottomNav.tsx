@@ -6,6 +6,7 @@ import { useLibrary } from './LibraryProvider';
 
 const TABS: { href: string; label: string; icon: NavIconName; also?: string[] }[] = [
   { href: '/room', label: '서재', icon: 'home' },
+  { href: '/forest', label: '도서관숲', icon: 'forest' },
   { href: '/add', label: '책 추가', icon: 'add' },
   { href: '/shelf', label: '책장', icon: 'shelf' },
   { href: '/decorate', label: '꾸미기', icon: 'deco' },

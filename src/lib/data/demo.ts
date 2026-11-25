@@ -1,11 +1,11 @@
 'use client';
 // 데모 모드: Supabase 없이 이 브라우저(localStorage)에만 저장한다
 import type { BookInfo } from '../books/nl';
-import type { AddMethod, GuestNote, InviteCode, LibraryEntry, Profile, Repo, RoomSummary } from './types';
+import type { AddMethod, ForestBook, ForestLoan, GuestNote, InviteCode, LibraryEntry, Profile, Repo, RoomSummary } from './types';
 import catalog from './demo-catalog.json';
 
 const KEY = 'seojae-demo-v1';
-interface Saved { profile: Profile; entries: LibraryEntry[]; invites?: InviteCode[]; guestbook?: GuestNote[] }
+interface Saved { profile: Profile; entries: LibraryEntry[]; invites?: InviteCode[]; guestbook?: GuestNote[]; forest?: { books: ForestBook[]; loans: ForestLoan[] } }
 type CatalogBook = BookInfo & { own: boolean; brag: boolean; comment: string | null };
 export const DEMO_CATALOG = catalog as CatalogBook[];
 
@@ -149,5 +149,60 @@ export function demoRepo(): Repo {
     async deleteGuestbook(id) { save((s) => { s.guestbook = (s.guestbook ?? []).filter((g) => g.id !== id); }); },
     async unreadGuestbook() { return 0; },
     async markGuestbookRead() {},
+    // 데모 도서관숲: 예시 책 목록 + 이 브라우저에만 남는 대여 기록
+    async forest() {
+      const s = get();
+      if (!s.forest) {
+        const t = Date.now(), f1 = { id: 'demo-friend-1', roomName: '새벽서가', hair: 4, outfit: 4 };
+        const books: ForestBook[] = DEMO_CATALOG.slice(0, 24).map((b, i) => ({ id: 'fb' + i, isbn: b.isbn, title: b.title, author: b.author, publisher: b.publisher, series: b.series, vol: b.vol,
+          coverUrl: b.coverUrl, genre: b.genre, copies: 1, shelf: i < 12 ? '위 칸' : '아래 칸', addedAt: t - i * 864e5, out: [] }));
+        const loans: ForestLoan[] = [
+          { id: 'l1', bookId: 'fb2', isbn: books[2].isbn, title: books[2].title, vol: books[2].vol, user: f1, borrowedAt: t - 3 * 864e5, dueAt: t + 11 * 864e5, returnedAt: null },
+          { id: 'l0', bookId: 'fb5', isbn: books[5].isbn, title: books[5].title, vol: books[5].vol, user: f1, borrowedAt: t - 20 * 864e5, dueAt: t - 6 * 864e5, returnedAt: t - 7 * 864e5 },
+        ];
+        save((x) => { x.forest = { books, loans }; });
+      }
+      const F = get().forest!;
+      const books = F.books.map((b) => ({ ...b, out: F.loans.filter((l) => l.bookId === b.id && !l.returnedAt) }));
+      return { library: { id: 'demo-forest', slug: 'forest', name: '도서관숲', place: '데모 책장', loanDays: 14 }, books, canManage: true };
+    },
+    async forestActivity() { return [...(get().forest?.loans ?? [])].sort((a, b) => Math.max(b.borrowedAt, b.returnedAt ?? 0) - Math.max(a.borrowedAt, a.returnedAt ?? 0)); },
+    async forestBorrow(isbn) {
+      save((s) => {
+        const F = s.forest!, b = F.books.find((x) => x.isbn === isbn);
+        if (!b) throw new Error('이 도서관에 없는 책이에요');
+        const out = F.loans.filter((l) => l.bookId === b.id && !l.returnedAt);
+        if (out.some((l) => l.user.id === 'demo')) throw new Error('이미 빌린 책이에요');
+        if (out.length >= b.copies) throw new Error('지금은 모두 대여 중이에요');
+        const p = s.profile, t = Date.now();
+        F.loans.push({ id: 'l' + t, bookId: b.id, isbn, title: b.title, vol: b.vol, user: { id: 'demo', roomName: p.roomName, hair: p.hair, outfit: p.outfit }, borrowedAt: t, dueAt: t + 14 * 864e5, returnedAt: null });
+      });
+    },
+    async forestReturn(by) {
+      save((s) => {
+        const l = s.forest!.loans.find((x) => !x.returnedAt && (by.loanId ? x.id === by.loanId : x.isbn === by.isbn && x.user.id === 'demo'));
+        if (!l) throw new Error('반납할 대여 기록이 없어요');
+        l.returnedAt = Date.now();
+      });
+    },
+    async forestExtend(loanId) {
+      let d = 0;
+      save((s) => { const l = s.forest!.loans.find((x) => x.id === loanId); if (l) { l.dueAt = Math.max(l.dueAt, Date.now()) + 14 * 864e5; d = l.dueAt; } });
+      return d;
+    },
+    async forestAdd(isbns) {
+      let added = 0;
+      for (const isbn of isbns) {
+        const s = get();
+        if (s.forest?.books.some((b) => b.isbn === isbn)) continue;
+        const [b] = await this.lookup({ isbn }).catch(() => []);
+        if (!b) continue;
+        save((x) => { x.forest!.books.unshift({ id: 'fb' + Date.now() + added, isbn, title: b.title, author: b.author, publisher: b.publisher, series: b.series, vol: b.vol, coverUrl: b.coverUrl, genre: b.genre, copies: 1, shelf: null, addedAt: Date.now(), out: [] }); });
+        added++;
+      }
+      return { added, skipped: isbns.length - added };
+    },
+    async forestRemove(bookId) { save((s) => { s.forest!.books = s.forest!.books.filter((b) => b.id !== bookId); }); },
+    async forestUpdate(bookId, patch) { save((s) => { const b = s.forest!.books.find((x) => x.id === bookId); if (b) Object.assign(b, patch); }); },
   };
 }

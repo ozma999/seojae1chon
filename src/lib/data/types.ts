@@ -21,6 +21,11 @@ export interface LibraryEntry extends BookInfo {
   lendable?: boolean;
 }
 export type ReadStatus = 'want' | 'reading' | 'done';
+export interface Who { id: string; roomName: string; hair: number; outfit: number }
+export interface ForestLoan { id: string; bookId: string; isbn: string; title: string; vol: number | null; user: Who; borrowedAt: number; dueAt: number; returnedAt: number | null }
+export interface ForestBook { id: string; isbn: string; title: string; author: string | null; publisher: string | null; series: string | null; vol: number | null;
+  coverUrl: string | null; genre: LibraryEntry['genre']; copies: number; shelf: string | null; addedAt: number; out: ForestLoan[] }
+export interface Forest { library: { id: string; slug: string; name: string; place: string | null; loanDays: number }; books: ForestBook[]; canManage: boolean }
 export type IlchonState = 'self' | 'ilchon' | 'sent' | 'received' | 'none';
 export interface GuestNote { id: number; host: string; author: { id: string; roomName: string; hair: number; outfit: number }; body: string; kind: 'note' | 'borrow'; isbn: string | null; bookTitle?: string | null; createdAt: number; readAt: number | null }
 export interface IlchonRequest { id: string; roomName: string; hair: number; outfit: number; createdAt: number }
@@ -82,4 +87,13 @@ export interface Repo {
   deleteGuestbook(id: number): Promise<void>;
   unreadGuestbook(): Promise<number>;
   markGuestbookRead(): Promise<void>;
+  // 도서관숲(함께 쓰는 실제 책장)
+  forest(): Promise<Forest | null>;
+  forestActivity(): Promise<ForestLoan[]>;
+  forestBorrow(isbn: string): Promise<void>;
+  forestReturn(by: { isbn?: string; loanId?: string }): Promise<void>;
+  forestExtend(loanId: string): Promise<number>;
+  forestAdd(isbns: string[]): Promise<{ added: number; skipped: number }>;
+  forestRemove(bookId: string): Promise<void>;
+  forestUpdate(bookId: string, patch: { copies?: number; shelf?: string | null }): Promise<void>;
 }
