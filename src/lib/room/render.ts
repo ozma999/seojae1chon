@@ -4,9 +4,12 @@ import type { ArtLevel, ArtManifest, ItemId, RoomBook, RoomState, ThemeKey, Tod 
 import { autoTheme, bragList, itemOn, pickLevel, pickedVar, type Placed } from './logic';
 import { autoTod } from './time';
 import { EBOOK_MARK } from './look';
+import { parseGarden, placeGarden, type PlantsData } from './garden';
 
 export interface LoadedArt {
   art: ArtManifest;
+  /** 식물 정원(public/art/plants.json). 못 받으면 null — 방은 식물 없이 그린다 */
+  plants: PlantsData | null;
   img: (path: string) => HTMLImageElement;
   /** 필요한 그림만 받아 둔다(이미 받은 건 건너뜀) */
   need: (paths: Iterable<string>) => Promise<void>;
@@ -16,7 +19,13 @@ export interface LoadedArt {
  * (예전에는 모든 방·스타일·꾸미기 모양 340여 장을 처음에 한꺼번에 받았다)
  */
 export async function loadArt(base = '/art'): Promise<LoadedArt> {
-  const art: ArtManifest = await (await fetch(`${base}/manifest.json`)).json();
+  const [art, plants]: [ArtManifest, PlantsData | null] = await Promise.all([
+    fetch(`${base}/manifest.json`).then((r) => r.json()),
+    fetch(`${base}/plants.json`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+  ]);
+  // 예전 '화분' 아이템(50권)은 식물 정원으로 바뀌었다
+  art.itemdefs = art.itemdefs.filter((d) => d.id !== 'plant');
+  art.levels.forEach((L) => { L.items = L.items.filter((it) => it.id !== 'plant'); });
   const map = new Map<string, HTMLImageElement>(), pending = new Map<string, Promise<void>>();
   const one = (p: string) => {
     let pr = pending.get(p);
@@ -33,7 +42,7 @@ export async function loadArt(base = '/art'): Promise<LoadedArt> {
   };
   const need = async (paths: Iterable<string>) => { await Promise.all([...new Set(paths)].map(one)); };
   await need([art.avatar.img]);
-  return { art, img: (p) => map.get(p)!, need };
+  return { art, plants, img: (p) => map.get(p)!, need };
 }
 
 // ---------- 시간대 조명 ----------
@@ -126,7 +135,7 @@ function drawSpine(c: CanvasRenderingContext2D, p: Placed) {
 // ---------- 방 합성 ----------
 export interface Hit { book?: RoomBook; empty?: boolean; brag?: boolean; x: number; y: number; w: number; h: number }
 /** 바닥 물건 한 개(시간대 그늘까지 입힌 조각). base = 바닥에 닿는 y(앞뒤 순서) */
-export interface FloorPiece { id: ItemId; c: HTMLCanvasElement; x: number; y: number; base: number; w: number }
+export interface FloorPiece { id: string; c: HTMLCanvasElement; x: number; y: number; base: number; w: number }
 /** 캐릭터 한 프레임: x,y = 발 위치(방 좌표) */
 export interface ActorDraw { src: HTMLCanvasElement; x: number; y: number; flip?: boolean; base?: number }
 export interface World {
@@ -145,14 +154,16 @@ const canvas = (w: number, h: number) => { const c = document.createElement('can
 const ctx2d = (c: HTMLCanvasElement) => c.getContext('2d', { willReadFrequently: true })!;
 
 export function createRenderer(la: LoadedArt) {
-  const { art, img } = la;
+  const { art, img, plants } = la;
+  const gardenOf = (li: number, st: RoomState) => (plants ? placeGarden(plants, li, parseGarden(st.picks)) : []);
   /** 이 상태의 방을 그리는 데 필요한 그림을 받아 둔다(renderWorld 전에 부른다) */
   async function prepare(st: RoomState) {
     const { li } = pickLevel(art, st.books), L = art.levels[li];
     const theme = st.theme ?? autoTheme(st.books), tod = st.tod ?? autoTod();
     const on = (id: ItemId) => itemOn(art, id, st.books.length, st.itemsOff);
     const paths = [L.bg[theme] ?? L.bg.attic, ...L.win.map((w) => (w.img[theme] ?? w.img.attic)[tod]),
-      ...L.items.filter((it) => on(it.id) && (!it.var || it.var === pickedVar(art, it.id, st.picks))).map((it) => it.img)];
+      ...L.items.filter((it) => on(it.id) && (!it.var || it.var === pickedVar(art, it.id, st.picks))).map((it) => it.img),
+      ...gardenOf(li, st).map((g) => g.plant.img)];
     await la.need(paths);
   }
   const shade = makeShader(art.pal);
@@ -192,6 +203,9 @@ export function createRenderer(la: LoadedArt) {
     // 아이템: 벽 물건은 배경에, 바닥 물건은 한 개씩 따로(캐릭터와 앞뒤를 매번 정한다)
     const wallItems = L.items.filter((it) => on(it.id) && vOk(it) && it.kind === 'wall');
     wallItems.forEach((it) => x.drawImage(img(it.img), it.x, it.y));
+    // 식물 정원: 벽·책장 위·천장·난간 식물은 배경에, 바닥 식물은 바닥 물건처럼 따로
+    const garden = gardenOf(li, st), backPlants = garden.filter((g) => g.layer === 'back');
+    backPlants.forEach((g) => x.drawImage(img(g.plant.img), g.x, g.y));
     const lights = L.lights.filter((l) => on(l.id) && (!l.shape || l.shape === pickedVar(art, l.id, st.picks)?.[0]));
     const floorItems = L.items.filter((it) => on(it.id) && vOk(it) && it.kind === 'floor');
     const floor: FloorPiece[] = floorItems.map((it) => {
@@ -200,18 +214,36 @@ export function createRenderer(la: LoadedArt) {
       if (tod !== '낮') shade(cx, im.width, im.height, tod, lights, null, it.x, it.y);
       return { id: it.id, c, x: it.x, y: it.y, base: it.base, w: im.width };
     });
+    const plantFloor = garden.filter((g) => g.layer === 'floor');
+    for (const g of plantFloor) {
+      const im = img(g.plant.img), c = canvas(im.width, im.height), cx = ctx2d(c);
+      cx.drawImage(im, 0, 0);
+      if (tod !== '낮') shade(cx, im.width, im.height, tod, lights, null, g.x, g.y);
+      floor.push({ id: 'plant:' + g.plant.id, c, x: g.x, y: g.y, base: g.base, w: im.width });
+    }
     // 방의 시간(창 유리 제외)
     if (tod !== '낮') {
       const wm = canvas(L.W, L.H), wx = ctx2d(wm);
       winImgs.forEach(({ w, im }) => wx.drawImage(im, w.x, w.y));
       wx.globalCompositeOperation = 'destination-out';
       wallItems.forEach((it) => wx.drawImage(img(it.img), it.x, it.y));
+      backPlants.forEach((g) => wx.drawImage(img(g.plant.img), g.x, g.y));   // 창 앞에 걸린 식물도 시간대 그늘을 받는다
       shade(x, L.W, L.H, tod, lights, wx.getImageData(0, 0, L.W, L.H).data);
     }
     // 납작한 러그(base 0)는 밟고 지나간다
-    const blocks = floor.filter((f) => f.base > 0).map((f) => [f.x - 3, f.base - 7, f.x + f.w + 3, f.base + 3] as [number, number, number, number]);
-    const need: Record<string, ItemId> = { sofa: 'chair', plant: 'plant' };
-    const poi = (L.walk?.poi ?? []).filter((q) => !need[q.kind] || on(need[q.kind]));
+    const blocks = floor.filter((f) => f.base > 0 && !f.id.startsWith('plant:')).map((f) => [f.x - 3, f.base - 7, f.x + f.w + 3, f.base + 3] as [number, number, number, number]);
+    // 바닥 식물은 화분 폭만큼만 막는다(잎은 위로 퍼져 있어 지나갈 수 있다)
+    for (const g of plantFloor) {
+      const half = (g.plant.foot ?? g.plant.w / 3) / 2 + 2, cx = g.slot.x;
+      blocks.push([cx - half, g.base - 6, cx + half, g.base + 3]);
+    }
+    const need: Record<string, ItemId> = { sofa: 'chair' };
+    const poi = (L.walk?.poi ?? []).filter((q) => q.kind !== 'plant' && (!need[q.kind] || on(need[q.kind])));
+    // 바닥 식물 옆에 서서 바라보기
+    for (const g of plantFloor) {
+      const half = (g.plant.foot ?? 20) / 2, right = g.slot.x > L.W / 2;
+      poi.push({ kind: 'plant', x: Math.round(g.slot.x + (right ? -half - 14 : half + 14)), y: g.base, face: right ? 'right' : 'left' });
+    }
     const fx = on('pendant') ? L.fx?.pendant?.[pickedVar(art, 'pendant', st.picks) ?? 'a'] ?? null : null;
     return { li, level: L, theme, tod, back, floor, lights, blocks, poi, fx, hits, overflow, bragSlots };
   }
@@ -325,5 +357,5 @@ export function createRenderer(la: LoadedArt) {
     ctx.drawImage(off, 0, 0, tw, th);
     ctx.imageSmoothingEnabled = false;
   }
-  return { art, prepare, renderWorld, composite, compositeFit, staticActors, actorFrame };
+  return { art, plants, prepare, renderWorld, composite, compositeFit, staticActors, actorFrame };
 }

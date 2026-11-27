@@ -378,3 +378,31 @@ a.btn.primary { color: var(--pri-ink); }
 .signboard .now b { font: 700 20px var(--pixel); color: var(--pri); }
 .signboard .rule { font-size: 14px; color: var(--muted); margin-top: 2px; }
 .forest-card > span:nth-child(2) { display: grid; gap: 2px; }
+
+/* ---- 식물 정원 ---- */
+.garden .seeds { margin: 0 0 8px; }
+.garden .seeds b { font: 700 26px/1 var(--pixel); color: var(--pri); margin: 0 2px; }
+.gardenroom { position: relative; margin: 0 -16px; }
+.gmark { position: absolute; transform: translate(-50%, -50%); width: 26px; height: 26px; border-radius: 50%; padding: 0; cursor: pointer;
+  font: 700 18px/1 var(--pixel); display: grid; place-items: center; z-index: 2; }
+.gmark.free { background: rgba(242, 196, 107, .85); color: var(--ink); border: 2px solid var(--ink); box-shadow: 0 0 0 3px rgba(255, 255, 255, .55); animation: gpulse 1.2s ease-in-out infinite; }
+.gmark.on { width: 16px; height: 16px; background: var(--pri); border: 2px solid #fff; }
+.gmark.top, .gmark.rail { width: 22px; height: 22px; font-size: 15px; }
+@keyframes gpulse { 50% { transform: translate(-50%, -50%) scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { .gmark.free { animation: none; } }
+.ghint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 44px; margin: 8px 0; }
+.ghint .chip { margin: 0; }
+.gtabs { grid-template-columns: repeat(4, 1fr); position: static; }
+.gtabs button { font-size: 13px; padding: 8px 2px; }
+.pgrid { list-style: none; padding: 0; margin: 0 0 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.pcard { width: 100%; display: grid; justify-items: center; align-content: end; gap: 2px; padding: 8px 4px; min-height: 128px; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; cursor: pointer; color: var(--ink); font: inherit; }
+.pcard img { image-rendering: pixelated; }
+.pcard b { font-size: 12px; line-height: 1.25; text-align: center; }
+.pcard small { font-size: 12px; color: var(--muted); }
+.pcard[aria-pressed="true"] { border: 2px solid var(--pri); background: #eef3f9; }
+.pcard:disabled { opacity: .5; cursor: not-allowed; }
+.gmark.on, .gmark.on.top, .gmark.on.rail { width: 14px; height: 14px; }
+.seedline { margin: 4px 0 0; color: var(--muted); }
+.seedline b { font: 700 16px var(--pixel); color: var(--ink); }
+.seedline a { color: var(--pri); font-weight: 700; margin-left: 4px; }

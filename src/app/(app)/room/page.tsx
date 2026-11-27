@@ -46,6 +46,7 @@ export default function RoomPage() {
     const n = entries.length, p = prev.current;
     if (p) {
       if (p.n === 0 && n > 0) say('첫 책을 꽂았어요! 서재가 시작됐어요 🎉');
+      else if (Math.floor(n / 10) > Math.floor(p.n / 10) && world.li === p.li) say(`씨앗을 받았어요 · 꾸미기 > 식물 정원에서 심어요`);
       else if (world.li > p.li) say(`방이 넓어졌어요 · Lv.${world.li + 1} ${world.level.name}`);
       else {
         const got = art.itemdefs.filter((d) => d.th <= n && d.th > p.n);
@@ -88,6 +89,7 @@ export default function RoomPage() {
             <span className="prog"><i style={{ width: `${Math.min(100, (n / nx.th) * 100)}%` }} /></span>
           </div>
         ) : <p className="next">모든 서재 아이템을 모았어요</p>}
+        <p className="small seedline">받은 씨앗 <b>{Math.floor(n / 10)}</b>개 · 10권마다 하나씩 <Link href="/decorate#garden">식물 심기</Link></p>
         <ForestCard />
         {world && world.overflow > 0 && <p className="muted">책장에 다 못 꽂은 {world.overflow.toLocaleString()}권은 보관함에 있어요.</p>}
         <h2 className="shelfh">방 분위기</h2>

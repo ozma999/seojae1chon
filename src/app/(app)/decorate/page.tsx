@@ -2,10 +2,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLibrary } from '@/components/LibraryProvider';
 import { getRenderer, type Renderer } from '@/components/RoomCanvas';
+import { Garden } from '@/components/Garden';
 import { HAIR_TH, OUTFIT_TH, pickedTheme, pickedVar } from '@/lib/room/logic';
 import type { ItemId } from '@/lib/room/types';
 
-/** 꾸미기: 서재 아이템 켜고 끄기 → 머리 → 옷 → 서재 이름 */
+/** 꾸미기: 식물 정원 → 방 스타일 → 서재 아이템 → 머리 → 옷 → 서재 이름 */
 export default function DecoratePage() {
   const { profile, entries, updateProfile, say } = useLibrary();
   const [r, setR] = useState<Renderer | null>(null);
@@ -19,6 +20,7 @@ export default function DecoratePage() {
   return (
     <div className="pad">
       <h1 className="h">꾸미기</h1>
+      <Garden r={r} />
       <h2 className="sub" id="style">방 스타일</h2>
       <div className="styles" role="group" aria-label="방 스타일">
         {([null, 'attic', 'space', 'manga', 'study'] as const).map((k) => {

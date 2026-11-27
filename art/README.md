@@ -7,6 +7,7 @@
 - scenes.py: 방 장면·소품 함수 / rooms.py: 빈 방 + 아이템 레이어 + 대표 책 테마 4종(최신)
 - avatar9.py: 확정 아바타(헤어 8 × 옷 8) / windows.py: 창밖 풍경 64 / materials.py: 재질 64
 - export_art.py: art.json(아바타 시트) 생성 / fonts.py: OS별 한글 폰트·출력 폴더
+- plantpx.py(식물 도트 규칙) · plantcat.py(식물 72종) · planttrees.py(상징목 3종) · export_plants.py(→ ../public/art/plants/ + plants.json, 방마다 심는 자리)
 - art.json, art2.json: 현재 아트 데이터. art2.json이 HTML의 `const ART={...};`에 들어가는 최종본
 
 ## 실행 (이 폴더에서)
