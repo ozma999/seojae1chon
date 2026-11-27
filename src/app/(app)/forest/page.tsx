@@ -83,8 +83,12 @@ export default function ForestPage() {
   const free = (b: ForestBook) => b.copies - b.out.length;
   return (
     <div className="pad forest">
-      <h1 className="h">{f.library.name}</h1>
-      <p className="muted small">{f.library.place ? `${f.library.place} · ` : ''}함께 쓰는 책장 · 책 {f.books.length.toLocaleString()}권 · 지금 대여 중 {out.length}권 · 대여 {f.library.loanDays}일(연장 1회) · 반납 전날 메일 알림</p>
+      <header className="signboard">
+        <h1>{f.library.name}</h1>
+        {f.library.place && <p className="place">{f.library.place}</p>}
+        <p className="now"><b>{f.books.length.toLocaleString()}</b>권 중 <b>{f.books.filter((b) => b.out.length < b.copies).length.toLocaleString()}</b>권 빌릴 수 있어요</p>
+        <p className="rule">{f.library.loanDays}일 대여 · 1번 연장 · 반납 전날 메일로 알려 드려요</p>
+      </header>
       <div className="bigbtns">
         <button className="btn primary big" onClick={() => (cam ? setScan('borrow') : (setTab('books'), say('목록에서 빌릴 책을 눌러 주세요')))}><b>빌리기</b><small>{cam ? '책 뒤 바코드 찍기' : '목록에서 고르기'}</small></button>
         <button className="btn big" onClick={() => (cam ? setScan('return') : mine.length ? say('아래 내가 빌린 책에서 반납을 눌러 주세요') : say('빌린 책이 없어요'))}><b>반납하기</b><small>{cam ? '찍으면 바로 반납' : '내가 빌린 책에서'}</small></button>

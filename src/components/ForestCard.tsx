@@ -20,8 +20,8 @@ export function ForestCard() {
   return (
     <Link href="/forest" className="card forest-card">
       <span className="tree" aria-hidden>🌳</span>
-      <span><b>{s.name}</b><small className="muted">{s.mine.length ? `빌린 책 ${s.mine.length}권 · 『${next.title}』 ${d < 0 ? `${-d}일 연체` : d === 0 ? '오늘 반납' : `D-${d}`}` : `함께 쓰는 책장 · ${s.total}권 중 ${s.free}권 빌릴 수 있어요`}</small></span>
-      <span className="chip">{s.mine.length ? '반납·연장' : '빌리러 가기'} ›</span>
+      <span><b>{s.name}</b><small className="muted">{s.mine.length ? `빌린 책 ${s.mine.length}권 · 『${next.title}』 ${d < 0 ? `${-d}일 연체` : d === 0 ? '오늘 반납' : `D-${d}`}` : `${s.total}권 중 ${s.free}권 빌릴 수 있어요`}</small></span>
+      <span className="chip">{s.mine.length ? '반납·연장' : '빌리러 가기'}</span>
     </Link>
   );
 }

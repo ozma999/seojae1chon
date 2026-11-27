@@ -60,38 +60,48 @@ export default function RoomPage() {
   const sun = sunTimes(now), top = bragTopGenre(roomBooks);
   return (
     <div>
-      <header className="bar">
+      <header className="bar roombar">
         <div className="brand">
-          <Image src="/brand/logo-h-light-v3.png" alt="서재일촌" width={261} height={76} className="logoimg" priority />
-          <h1 className="rn">· {profile!.roomName}</h1>
+          <Image src="/brand/symbol-v3.png" alt="서재일촌" width={40} height={40} className="logoimg sym" priority />
+          <h1 className="rn">{profile!.roomName}</h1>
         </div>
         {world && <span className="lv">Lv.{world.li + 1} {world.level.name}</span>}
       </header>
-      <div className="subbar">
-        <span className="muted small">{profile!.title && <b className="ptitle">{profile!.title}</b>} 오늘 방문 <b className="today">{visits ?? '-'}</b></span>
-        <span className="chiprow tight"><Link href="/shelf#search" className="chip">내 책 찾기</Link><Link href="/ilchon" className="chip">서재산책 ›</Link></span>
-      </div>
       <RoomCanvas state={state} onWorld={(w, r) => { setWorld(w); setArt(r.art); }}
         onPick={(h) => { if (h.book) setPick(entries.find((e) => e.id === h.book!.id) ?? null); else if (h.empty) say('책을 눌러 \'자랑 책장에 꽂기\'를 고르면 여기에 표지가 보여요'); }} />
+      <nav className="roomacts" aria-label="서재 바로가기">
+        <Link href="/shelf#search">내 책 찾기</Link>
+        <Link href="/ilchon">서재산책</Link>
+      </nav>
       <section className="pad">
         <Onboarding />
-        <ForestCard />
-        <p className="stat"><b>{n.toLocaleString()}</b>권 · 종이 {entries.filter((e) => e.format === 'paper').length.toLocaleString()} / 전자 {entries.filter((e) => e.format === 'ebook').length.toLocaleString()}</p>
+        <div className="tally">
+          <p className="count"><b>{n.toLocaleString()}</b>권</p>
+          <p className="small muted">
+            {profile!.title && <><b className="ptitle">{profile!.title}</b><br /></>}
+            종이 {entries.filter((e) => e.format === 'paper').length.toLocaleString()} · 전자 {entries.filter((e) => e.format === 'ebook').length.toLocaleString()} · 오늘 방문 <b className="today">{visits ?? '-'}</b>
+          </p>
+        </div>
         {nx ? (
           <div className="next">
             <span>다음 아이템 <b className="acc">{nx.name}</b>까지 {(nx.th - n).toLocaleString()}권</span>
             <span className="prog"><i style={{ width: `${Math.min(100, (n / nx.th) * 100)}%` }} /></span>
           </div>
         ) : <p className="next">모든 서재 아이템을 모았어요</p>}
+        <ForestCard />
         {world && world.overflow > 0 && <p className="muted">책장에 다 못 꽂은 {world.overflow.toLocaleString()}권은 보관함에 있어요.</p>}
+        <h2 className="shelfh">방 분위기</h2>
         {world && art && (
-          <p className="muted">테마 <b>{art.themes[world.theme].name}</b> · {pickedTheme(profile!.picks) ? '꾸미기에서 고른 스타일' : top ? `자랑 책장의 ${GENRE_NAME[top]} 책이 고른 방` : '자랑 책장이 비어 기본 테마'} · <Link href="/decorate#style">바꾸기</Link></p>
+          <div className="themerow">
+            <span><b>{art.themes[world.theme].name}</b><small className="muted">{pickedTheme(profile!.picks) ? '꾸미기에서 고른 스타일' : top ? `자랑 책장의 ${GENRE_NAME[top]} 책이 고른 방` : '자랑 책장이 비어 기본 테마'}</small></span>
+            <Link href="/decorate#style" className="chip">바꾸기</Link>
+          </div>
         )}
-        <div className="chiprow" role="group" aria-label="방의 시간">
-          <button className="chip" aria-pressed={tod === null} onClick={() => setTod(null)}>휴대폰 시각 {hm(now)} · {autoT}</button>
-          {TODS.map((t) => <button key={t} className="chip" aria-pressed={tod === t} onClick={() => setTod(t)}>{t}</button>)}
+        <div className="seg" role="group" aria-label="방의 시간">
+          <button aria-pressed={tod === null} onClick={() => setTod(null)}>자동 <small>{hm(now)}</small></button>
+          {TODS.map((t) => <button key={t} aria-pressed={tod === t} onClick={() => setTod(t)}>{t}</button>)}
         </div>
-        <p className="muted small">오늘 해 뜸 {hm(sun.rise)} · 해 짐 {hm(sun.set)} (서울 기준)</p>
+        <p className="muted small">지금은 {autoT} · 오늘 해 뜸 {hm(sun.rise)}, 해 짐 {hm(sun.set)} (서울 기준)</p>
         {profile && <Guestbook host={profile.id} canWrite={false} isHost limit={3} />}
         {mode === 'demo' && (
           <div className="demo">
