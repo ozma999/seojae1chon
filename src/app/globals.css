@@ -93,14 +93,22 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .charbtn canvas { width: 56px; height: 94px; image-rendering: pixelated; }
 .charbtn[aria-pressed="true"] { border-color: var(--pri); }
 .charbtn:disabled { opacity: .45; cursor: not-allowed; }
+/* 하단 메뉴: 책장 선반 위에 놓인 메뉴. 지금 있는 곳은 노란 책갈피가 위에서 내려온다 */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(6, 1fr); max-width: 520px; margin: 0 auto;
-  background: var(--panel); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
-.tabbar a { display: grid; grid-template-rows: 24px 14px; justify-items: center; align-content: center; row-gap: 4px; min-height: 58px; padding: 6px 0;
+  background: var(--panel); padding: 5px 0 env(safe-area-inset-bottom); z-index: 10; }
+.tabbar::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px;
+  background: linear-gradient(var(--wood-l) 0 1px, var(--wood) 1px 4px, var(--wood-d) 4px); }
+.tabbar a { display: grid; grid-template-rows: 28px 14px; justify-items: center; align-content: center; row-gap: 3px; min-height: 60px; padding: 6px 0;
   font: 500 12px/14px var(--font); color: var(--muted); text-decoration: none; position: relative; }
-.tabbar a.on { font-weight: 700; }   /* 메뉴 글자는 기본 고딕(픽셀 글꼴은 12px에서 흐려지고 아이콘과 겹쳐 무거움) */
-.tabbar a.on::before { content: ""; position: absolute; top: 0; left: 50%; width: 40px; height: 3px; margin-left: -20px; background: var(--hl); }
+.tabbar a.on { font-weight: 700; color: var(--pri); }   /* 메뉴 글자는 기본 고딕(픽셀 글꼴은 12px에서 흐려짐) */
+.tabbar a.on::before { content: ""; position: absolute; top: -5px; left: 50%; width: 12px; height: 13px; margin-left: -6px; background: var(--hl);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%); }
+.tabbar .navic { display: grid; place-items: center; width: 28px; height: 28px; }
 .navicon { display: block; width: 24px; height: 24px; }
-.tabbar a.on { color: var(--pri); }
+/* 책 추가: 가장 자주 하는 일이라 파란 칸에 */
+.tabbar a.addtab .navic { width: 40px; border-radius: 8px; background: var(--pri); color: var(--pri-ink); }
+.tabbar a.addtab { color: var(--pri); }
+.tabbar a.addtab.on::before { display: none; }
 .toast { position: fixed; left: 50%; bottom: 84px; transform: translate(-50%, 20px); opacity: 0; background: var(--ink); color: var(--bg);
   padding: 10px 16px; border-radius: 999px; font-size: 14px; transition: .2s; pointer-events: none; z-index: 30; max-width: 90vw; }
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
