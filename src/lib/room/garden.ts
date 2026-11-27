@@ -5,8 +5,8 @@
 
 export type PlantCat = 'L' | 'M' | 'S' | 'H' | 'W' | 'G' | 'SYM';
 /** 식물이 들어가는 자리: floorL = 바닥 큰 자리만, floorM = 바닥 아무 자리 */
-export type PlantSlot = 'floorL' | 'floorM' | 'top' | 'hang' | 'wall' | 'rail' | 'railTop' | 'bed' | 'sym' | 'symTop';
-export type SlotKind = 'floor' | 'top' | 'hang' | 'wall' | 'rail' | 'bed' | 'sym';
+export type PlantSlot = 'floorL' | 'floorM' | 'top' | 'hang' | 'wall' | 'pillar' | 'rail' | 'railTop' | 'bed' | 'sym' | 'symTop';
+export type SlotKind = 'floor' | 'top' | 'hang' | 'wall' | 'pillar' | 'rail' | 'bed' | 'sym';
 
 export interface PlantDef {
   id: string; name: string; cat: PlantCat; seeds: number; slot: PlantSlot;
@@ -21,7 +21,7 @@ export interface PlantDef {
 type XY = [number, number];
 export interface LevelSlots {
   floor?: [number, number, 'L' | 'M'][];
-  top?: XY[]; hang?: XY[]; wall?: XY[]; rail?: XY[]; bed?: XY[];
+  top?: XY[]; hang?: XY[]; wall?: XY[]; pillar?: XY[]; rail?: XY[]; bed?: XY[];
   sym?: [number, number, number][];
 }
 export interface PlantsData { plants: PlantDef[]; cats: { id: PlantCat; name: string }[]; slots: LevelSlots[]; seedEvery: number }
@@ -30,7 +30,7 @@ export interface Slot { key: string; kind: SlotKind; x: number; y: number; size?
 export interface GardenEntry { p: string; s: string }
 
 export const SLOT_KIND: Record<PlantSlot, SlotKind> = {
-  floorL: 'floor', floorM: 'floor', top: 'top', hang: 'hang', wall: 'wall', rail: 'rail', railTop: 'rail', bed: 'bed', sym: 'sym', symTop: 'sym',
+  floorL: 'floor', floorM: 'floor', top: 'top', hang: 'hang', wall: 'wall', pillar: 'pillar', rail: 'rail', railTop: 'rail', bed: 'bed', sym: 'sym', symTop: 'sym',
 };
 
 export function parseGarden(picks?: Record<string, string | number>): GardenEntry[] {
@@ -50,7 +50,7 @@ export function seedsUsed(data: PlantsData, g: GardenEntry[]) {
 export function levelSlots(data: PlantsData, li: number): Slot[] {
   const L = data.slots[Math.min(li, data.slots.length - 1)] ?? {}, out: Slot[] = [];
   L.floor?.forEach(([x, y, size], i) => out.push({ key: `floor${i}`, kind: 'floor', x, y, size }));
-  (['top', 'hang', 'wall', 'rail', 'bed'] as const).forEach((k) => L[k]?.forEach(([x, y], i) => out.push({ key: `${k}${i}`, kind: k, x, y })));
+  (['top', 'hang', 'wall', 'pillar', 'rail', 'bed'] as const).forEach((k) => L[k]?.forEach(([x, y], i) => out.push({ key: `${k}${i}`, kind: k, x, y })));
   L.sym?.forEach(([x, y, top], i) => out.push({ key: `sym${i}`, kind: 'sym', x, y, top }));
   return out;
 }
@@ -59,7 +59,7 @@ export const fits = (p: PlantDef, s: Slot) =>
 
 /** 심은 식물을 그릴 위치로: 이 방에 없는 자리·모르는 식물은 건너뛴다(저장은 그대로 — 방이 넓어지면 다시 보인다) */
 export interface PlantDraw { plant: PlantDef; slot: Slot; x: number; y: number; layer: 'back' | 'floor'; base: number; order: number }
-const BACK_ORDER: Record<SlotKind, number> = { wall: 0, top: 1, rail: 2, hang: 3, sym: 4, floor: 0, bed: 0 };
+const BACK_ORDER: Record<SlotKind, number> = { pillar: 0, wall: 0, top: 1, rail: 2, hang: 3, sym: 4, floor: 0, bed: 0 };
 export function placeGarden(data: PlantsData, li: number, g: GardenEntry[]): PlantDraw[] {
   const slots = new Map(levelSlots(data, li).map((s) => [s.key, s])), defs = new Map(data.plants.map((p) => [p.id, p]));
   const used = new Set<string>(), out: PlantDraw[] = [];

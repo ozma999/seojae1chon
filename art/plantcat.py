@@ -3,7 +3,9 @@ import sys, os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from plantpx import *
 
 PI2 = math.pi / 2
-def base(W, H): s = Spr(int(W), int(H), int(W * .25) + 4, int(H * .5) + 4); return s, int(W) // 2
+def base(W, H):
+    s = Spr(int(W), int(H), int(W * .25) + 4, int(H * .5) + 4); s.lw = int(W)   # lw = 그림 폭(여백 뺀 값)
+    return s, int(W) // 2
 
 # ================= 큰 바닥 화분 (씨앗 4) =================
 def monstera(H=80):
@@ -412,7 +414,7 @@ def ivy_basket(H=64):
     for a in (-2.8, -2.2, -1.6, -1.0, -0.4): leaf(s, cx, t + 1, a, 6, 3, T_DEEP, 'heart', vein=False)
     return s
 def spanish_moss(H=56):
-    s, cx = base(46, H); L = s.layer(); L.R(4, 2, s.W - 4, 6, 'woodD'); L.R(4, 2, s.W - 4, 3, 'wood'); s.put(L)
+    s, cx = base(46, H); L = s.layer(); L.R(4, 2, s.lw - 4, 6, 'woodD'); L.R(4, 2, s.lw - 4, 3, 'wood'); s.put(L)
     r = random.Random(3)
     for k in range(13):
         x = 6 + k * 2.8; l = r.randint(H // 3, H - 8)
@@ -426,12 +428,12 @@ def staghorn_board(H=40):
     for a in [-2.5, -2.0, -1.2, -0.7, 2.2, 1.0]: leaf(s, cx, H / 2, a, 16, 3.2, T_SAGE, 'paddle', split=1)
     s.R(cx - 1, 2, cx + 1, 6, 'greyD'); return s
 def wall_shelf(H=36):
-    s, cx = base(50, H); B = s.layer(); B.R(3, H - 12, s.W - 3, H - 9, 'woodL'); B.R(3, H - 10, s.W - 3, H - 9, 'wood'); B.R(8, H - 9, 10, H - 4, 'woodD'); B.R(s.W - 10, H - 9, s.W - 8, H - 4, 'woodD'); s.put(B)
+    s, cx = base(50, H); B = s.layer(); B.R(3, H - 12, s.lw - 3, H - 9, 'woodL'); B.R(3, H - 10, s.lw - 3, H - 9, 'wood'); B.R(8, H - 9, 10, H - 4, 'woodD'); B.R(s.lw - 10, H - 9, s.lw - 8, H - 4, 'woodD'); s.put(B)
     s.paste(succulent().trim(), 12, H - 11); s.paste(ball_cactus().trim(), 26, H - 11)
     p = pothos_shelf().trim(); s.im.alpha_composite(p, (36 + s.ox - p.width // 2, H - 12 - 10 + s.oy))
     return s
 def moss_frame(H=30):
-    s, cx = base(34, H); B = s.layer(); B.R(2, 2, s.W - 2, H - 2, 'woodD'); B.R(4, 4, s.W - 4, H - 4, 'moss'); s.put(B)
+    s, cx = base(34, H); B = s.layer(); B.R(2, 2, s.lw - 2, H - 2, 'woodD'); B.R(4, 4, s.lw - 4, H - 4, 'moss'); s.put(B)
     for x, y, r, tn in [(10, 11, 6, T_GREEN), (22, 9, 5, T_DEEP), (16, 19, 6, T_SAGE), (26, 19, 4, T_GREEN)]: blob(s, x, y, r, r * .8, tn, 5, x)
     flower(s, 9, 20, 'yellow', 'yellowD', 2); flower(s, 25, 13, 'pink', 'redD', 2); return s
 def ivy_wall(H=70, W=40, seed=2):
@@ -446,10 +448,10 @@ def ivy_wall(H=70, W=40, seed=2):
         for i in range(3, len(pts), 5): sd = 1 if (i // 5) % 2 else -1; leaf(s, *pts[i], -PI2 + sd * 1.2, 5, 3, (T_GREEN, T_DEEP, T_LIME)[r.randint(0, 2)], 'heart', vein=False)
     return s
 def green_panel(H=60):   # 수직 정원 패널
-    s, cx = base(50, H); B = s.layer(); B.R(2, 2, s.W - 2, H - 2, 'greyD'); B.R(4, 4, s.W - 4, H - 4, 'moss'); s.put(B)
+    s, cx = base(50, H); B = s.layer(); B.R(2, 2, s.lw - 2, H - 2, 'greyD'); B.R(4, 4, s.lw - 4, H - 4, 'moss'); s.put(B)
     r = random.Random(5)
     for y in range(10, H - 6, 11):
-        for x in range(9, s.W - 6, 11):
+        for x in range(9, s.lw - 6, 11):
             kind = r.randint(0, 3)
             if kind == 0: blob(s, x, y, 6, 5, (T_GREEN, T_SAGE, T_DEEP)[r.randint(0, 2)], 5, x * y)
             elif kind == 1: [leaf(s, x, y + 3, a, 7, 2.5, T_GREEN, 'lance', vein=False) for a in (-2.4, -1.57, -0.7)]
@@ -457,7 +459,7 @@ def green_panel(H=60):   # 수직 정원 패널
             else: [flower(s, x + dx, y + dy, ('pink', 'yellow', 'white')[r.randint(0, 2)], 'redD', 2) for dx, dy in ((-2, 0), (2, -1), (0, 2))]
     return s
 def wall_tank(H=40):   # 벽 어항
-    s, cx = base(54, H); B = s.layer(); B.R(2, 2, s.W - 2, H - 2, 'woodD'); B.R(4, 4, s.W - 4, H - 4, 'sea'); B.R(5, 5, 9, H - 5, 'sky'); B.R(4, H - 9, s.W - 4, H - 4, 'floorL'); s.put(B)
+    s, cx = base(54, H); B = s.layer(); B.R(2, 2, s.lw - 2, H - 2, 'woodD'); B.R(4, 4, s.lw - 4, H - 4, 'sea'); B.R(5, 5, 9, H - 5, 'sky'); B.R(4, H - 9, s.lw - 4, H - 4, 'floorL'); s.put(B)
     for x, k in [(14, 'pink'), (24, 'orange'), (38, 'red'), (44, 'purple')]: flower(s, x, H - 10, k, 'redD', 4)
     for k, x in enumerate((19, 32, 47)):
         pts = [(x + math.sin(y / 4 + k) * 1.5, y) for y in range(H - 9, 10, -2)]; stem(s, pts, 'green')
@@ -473,7 +475,7 @@ def ring_planter(H=40):
     for a_ in (-2.6, -2.0, -1.2, -0.5): leaf(s, cx, t + 1, a_, 8, 3, T_GREEN, 'heart', vein=False)
     vine(s, cx + 5, t + 6, 18, 3, sway=1); return s
 def seaweed_frame(H=36):   # 해초 액자(바닷속 정원 표본)
-    s, cx = base(30, H); B = s.layer(); B.R(2, 2, s.W - 2, H - 2, 'white'); B.R(4, 4, s.W - 4, H - 4, 'skyL'); s.put(B)
+    s, cx = base(30, H); B = s.layer(); B.R(2, 2, s.lw - 2, H - 2, 'white'); B.R(4, 4, s.lw - 4, H - 4, 'skyL'); s.put(B)
     for k, x in enumerate((10, 15, 20)):
         pts = [(x + math.sin(y / 4 + k) * 1.5, y) for y in range(H - 6, 8, -2)]; stem(s, pts, ('green', 'teal', 'yellowD')[k])
         for i in range(0, len(pts), 3): leaf(s, *pts[i], -PI2 + (1 if i % 2 else -1) * .8, 4, 1.2, (T_GREEN, T_TEAL, ('greenD', 'yellowD', 'yellow'))[k], 'lance', vein=False)

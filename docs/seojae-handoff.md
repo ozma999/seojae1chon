@@ -221,7 +221,7 @@ pixel-library-plan.html(기획서 v0.6 + 프로토타입)과 seojae-art-src 폴�
 
 ### 그림 다시 만들기
 `cd art && python3 rooms.py && python3 split_art.py && python3 village.py && python3 export_actors.py`(캐릭터 시트). 새 머리: `avatar9.make` 앞머리 + `avatar2.STYLE` 한 줄. 새 꾸미기 모양: `variants.py`의 SHAPES/COLORS + 그리기 함수.
-식물: `python3 export_plants.py`(약 4분) → `public/art/plants/*.png` + `plants.json`. 식물 그림은 `plantcat.py`(72종)·`planttrees.py`(상징목), 도트 규칙(잎마다 외곽선·3톤·점선 그림자)은 `plantpx.py`, 방마다 심는 자리는 `export_plants.py`의 SLOTS.
+식물: `python3 export_plants.py`(약 4분) → `public/art/plants/*.png` + `plants.json`. 식물 그림은 `plantcat.py`(72종)·`planttrees.py`(상징목), 도트 규칙(잎마다 외곽선·3톤·점선 그림자)은 `plantpx.py`, 방마다 심는 자리는 `export_plants.py`의 SLOTS(벽걸이 액자류는 평평한 벽, 벽 아이비는 기둥 자리에만).
 
 ### 남은 일
 사진 등록 모델 비교(키 준비 후 `scripts/photo-bakeoff.mts`), 상징목 꾸미기(장식·조명 등), 위층 빈 책장 칸 화분 자리, 나머지 꾸미기 물건 모양, 캐릭터 동작 추가(책 읽기·손 흔들기), 오류 알림 연결, 화면 단위 자동 테스트.
