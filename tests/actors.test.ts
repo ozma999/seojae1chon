@@ -50,7 +50,7 @@ describe('행동', () => {
   it('두 명이면 언젠가 말풍선을 주고받는다', () => {
     seed = 11;
     const s = new Sim(floor, [{ id: 'host', x: 40, y: 80 }, { id: 'me', x: 70, y: 86 }], { rnd, lines: () => ['안녕!', '반가워'] });
-    let said = new Set<string>();
+    const said = new Set<string>();
     for (let i = 0; i < 8000 && said.size < 2; i++) { s.step(0.12); for (const a of s.actors) { const b = s.bubble(a); if (b) said.add(b); } }
     expect([...said].sort()).toEqual(['반가워', '안녕!']);
   });

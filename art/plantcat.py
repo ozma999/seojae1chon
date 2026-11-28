@@ -345,10 +345,14 @@ def mini_tank(H=20):   # 미니 산호 수조
     F = s.layer(); F.R(cx - 2, 7, cx + 2, 9, 'yellow'); F.P(cx + 2, 7, 'yellow'); F.P(cx + 2, 9, 'yellow'); s.put(F); shadow(s, cx - 11, cx + 12, H - 1); return s
 
 # ================= 행잉 (씨앗 2) =================
-def hang_base(W, H, potk='white', shape='bowl', rope='cream', y=22, pw=16, ph=9):
+def hang_base(W, H, potk='white', shape='bowl', rope='cream', y=32, pw=16, ph=9):
+    """천장 고리 + 끈(외곽선 있는 끈이라 어느 벽에서도 보인다) + 화분. 돌려주는 t = 흙 높이"""
     s, cx = base(W, H)
-    for x in (cx - pw / 2 + 2, cx + pw / 2 - 2): s.line((cx, 0), (x, y - ph), rope)
-    s.R(cx - 1, 0, cx + 2, 2, 'woodD'); t = pot(s, cx, y, pw, ph, potk, shape)
+    Rp = s.layer()
+    for x in (cx - pw / 2 + 2, cx + pw / 2 - 2): Rp.line((cx, 2), (x, y - ph - 1), rope)
+    Rp.R(cx - 1, 0, cx + 2, 3, 'woodD'); Rp.R(cx - 2, y - ph - 6, cx + 3, y - ph - 4, rope)   # 고리 + 매듭
+    s.put(Rp)
+    t = pot(s, cx, y, pw, ph, potk, shape)
     for yy in range(int(y + 1), int(y + 3)): [s.clear(x, yy) for x in range(-s.ox, s.W - s.ox)]   # 점선 그림자 지우기
     return s, cx, t
 def hang_pothos(H=90):
@@ -363,7 +367,7 @@ def hang_pearls(H=80):
             X = cx + x + math.sin(y / 7 + k) * 1.2; L = s.layer(); L.R(X - 1, y, X + 1, y + 2, 'green' if (y // 3) % 2 else 'leafL'); s.put(L)
     return s
 def hang_fern(H=60):
-    s, cx, t = hang_base(50, H, 'basket', 'box', 'woodD', 20, 22, 8)
+    s, cx, t = hang_base(50, H, 'basket', 'box', 'woodD', 26, 22, 8)
     for a in [-3.1, -2.7, -2.3, -0.8, -0.4, 0.0, 0.4, 2.7, 1.2, 1.9]:
         ln = 20; pts = [(cx + math.cos(a) * ln * u, t + 4 + math.sin(a) * ln * u * .6 + u * u * 14) for u in [i / 12 for i in range(13)]]
         stem(s, pts, 'greenD')
@@ -409,7 +413,7 @@ def jelly_hang(H=100):   # 해파리 행잉(오셔너리움 문 젤리): 반투�
     for k, (x, l) in enumerate([(-12, H - 44), (-6, H - 34), (0, H - 30), (6, H - 38), (12, H - 46)]): vine(s, cx + x, 30, l, k * 5, T_TEAL, 2.2, 5, 3)
     return s
 def ivy_basket(H=64):
-    s, cx, t = hang_base(40, H, 'basket', 'box', 'woodD', 20, 20, 9)
+    s, cx, t = hang_base(40, H, 'basket', 'box', 'woodD', 30, 20, 9)
     for k, (x, l) in enumerate([(-9, H - 26), (-4, H - 34), (3, H - 22), (9, H - 30)]): vine(s, cx + x, t + 3, l, k * 2, T_DEEP, 1.2, 4, 3)
     for a in (-2.8, -2.2, -1.6, -1.0, -0.4): leaf(s, cx, t + 1, a, 6, 3, T_DEEP, 'heart', vein=False)
     return s

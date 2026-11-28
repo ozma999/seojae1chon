@@ -98,13 +98,13 @@ CATS = [('L', '큰 화분'), ('M', '중간 화분'), ('S', '작은 화분'), ('H
 
 # ---------- 방마다 심는 자리 ----------
 # floor: [x, 바닥 y, 'L'|'M'] (L 자리엔 큰·중간 모두, M 자리엔 중간만)
-# top/wall/pillar/rail/bed: [x, 바닥 y]   hang: [x, 천장 y]   sym: [x, 바닥 y, 천장 y]
+# top: [x, 놓이는 y, (바닥 물건 위면) 그 물건 바닥 y]   wall/pillar/rail/bed: [x, 바닥 y]   hang: [x, 천장 y]   sym: [x, 바닥 y, 천장 y]
 # 같은 종류 안에서 번호 순서가 방마다 비슷한 위치(뒤쪽 구석 → 앞쪽)가 되게 → 방이 넓어져도 비슷한 자리로 옮겨 간다
 SLOTS = [
  dict(floor=[[256, 152, 'M'], [108, 146, 'M'], [184, 146, 'M'], [20, 214, 'M'], [232, 214, 'M']], top=[[200, 56], [226, 56], [132, 84], [156, 84]], hang=[[112, 12], [176, 12]], wall=[[144, 120]]),
  dict(floor=[[14, 214, 'L'], [370, 214, 'L'], [300, 248, 'L'], [130, 204, 'M'], [262, 204, 'M'], [30, 286, 'M'], [356, 286, 'M'], [70, 214, 'M']], top=[[122, 40], [146, 40], [240, 40], [264, 40], [288, 40], [180, 92], [204, 92]], hang=[[162, 12], [222, 12], [330, 14], [60, 14]], wall=[[192, 154]]),
  dict(floor=[[30, 300, 'L'], [482, 300, 'L'], [120, 282, 'L'], [420, 282, 'L'], [40, 382, 'L'], [472, 382, 'L'], [330, 280, 'M'], [205, 280, 'M'], [130, 378, 'M'], [380, 380, 'M']], top=[[238, 240], [278, 240]], hang=[[120, 23], [170, 23], [340, 23], [400, 23], [30, 30], [482, 30]], wall=[[258, 226]], pillar=[[227, 266], [285, 266]]),
- dict(floor=[[92, 426, 'L'], [690, 428, 'L'], [176, 422, 'L'], [604, 422, 'L'], [262, 426, 'L'], [500, 426, 'L'], [40, 500, 'L'], [744, 500, 'L'], [36, 574, 'L'], [744, 574, 'L'], [330, 574, 'M'], [470, 574, 'M']], top=[[262, 481], [611, 506], [358, 374], [410, 374]], hang=[[40, 28], [100, 18], [155, 18], [290, 18], [480, 18], [615, 18], [670, 18], [728, 28]], wall=[[384, 372]], pillar=[[335, 404], [433, 404], [335, 206], [433, 206]], rail=[[94, 188], [144, 188], [194, 188], [464, 188], [514, 188], [628, 188], [678, 188]], bed=[[150, 568], [640, 572]], sym=[[384, 446, 8]]),
+ dict(floor=[[92, 426, 'L'], [690, 428, 'L'], [176, 422, 'L'], [604, 422, 'L'], [262, 426, 'L'], [500, 426, 'L'], [40, 500, 'L'], [744, 500, 'L'], [36, 574, 'L'], [744, 574, 'L'], [330, 574, 'M'], [470, 574, 'M']], top=[[262, 481, 502], [611, 506, 522], [358, 374], [410, 374]], hang=[[40, 28], [100, 18], [155, 18], [290, 18], [480, 18], [615, 18], [670, 18], [728, 28]], wall=[[384, 372]], pillar=[[335, 404], [433, 404], [335, 206], [433, 206]], rail=[[94, 188], [144, 188], [194, 188], [464, 188], [514, 188], [628, 188], [678, 188]], bed=[[150, 568], [640, 572]], sym=[[384, 446, 8]]),
 ]
 
 def foot_width(im, ay):
@@ -112,12 +112,17 @@ def foot_width(im, ay):
     a = im.split()[3].load(); xs = [x for y in range(max(0, ay - 3), ay + 1) for x in range(im.width) if a[x, y]]
     return (max(xs) - min(xs) + 1) if xs else im.width // 3
 
-def export(out='../public/art'):
+def export(out='../public/art', only=None):
+    """only: 이 식물만 다시 그린다(나머지는 기존 plants.json·그림 그대로)"""
     pdir = os.path.join(out, 'plants'); os.makedirs(pdir, exist_ok=True)
+    old = {p['id']: p for p in json.load(open(os.path.join(out, 'plants.json'), encoding='utf-8'))['plants']} if only else {}
+    keep = {old[k]['img'].split('/')[-1] for k in old if k not in only} if only else set()
     for f in os.listdir(pdir):
-        if f.endswith('.png'): os.remove(os.path.join(pdir, f))
+        if f.endswith('.png') and f not in keep: os.remove(os.path.join(pdir, f))
     items = []
     for pid, name, fn, cat, seeds, slot, anchor, unlock in PLANTS:
+        if only and pid not in only and pid in old:
+            items.append(dict(old[pid], name=name, cat=cat, seeds=seeds, slot=slot, unlock=unlock)); continue
         s = fn(); W = s.W - 2 * s.ox; H = s.H - s.oy; cx = s.ox + W // 2
         if anchor == 'top': ax, ay = cx, s.oy
         elif anchor == 'pot': ax, ay = cx, s.oy + 12        # 책장 위에 놓고 아래로 흘러내리는 화분: 화분 바닥이 기준
@@ -134,4 +139,6 @@ def export(out='../public/art'):
     print(f'{len(items)} plants, {size // 1024}KB')
 
 if __name__ == '__main__':
-    export()
+    # python3 export_plants.py                 → 모두 다시 그림(약 4분)
+    # python3 export_plants.py hoya,ivybasket  → 이 식물만
+    export(only=set(sys.argv[1].split(',')) if len(sys.argv) > 1 else None)

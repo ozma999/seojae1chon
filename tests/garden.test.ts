@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canPlant, levelSlots, parseGarden, placeGarden, seedsTotal, seedsUsed, serializeGarden, type PlantsData } from '../src/lib/room/garden';
+import { canPlant, hiddenEntries, levelSlots, parseGarden, placeGarden, seedsTotal, seedsUsed, serializeGarden, type PlantsData } from '../src/lib/room/garden';
 
 const data: PlantsData = {
   seedEvery: 10,
@@ -48,5 +48,18 @@ describe('식물 정원', () => {
   });
   it('씨앗이 모자라면 못 심는다', () => {
     expect(canPlant(data, data.plants[0], 30, [], 1).why).toBe('씨앗 4개 필요');
+  });
+  it('자리가 없거나 맞지 않는 식물은 보관 중으로 보고, 그 자리를 막지 않는다', () => {
+    const g = parseGarden({ garden: 'big@floor0,mid@floor1' });
+    expect(hiddenEntries(data, 0, g)).toEqual(g);                  // 작은 방: floor0은 M 자리, floor1은 없음
+    expect(hiddenEntries(data, 1, g)).toEqual([]);
+    // 작은 방 floor0에 큰 화분이 '보관 중'이어도 중간 화분은 그 자리에 심을 수 있다
+    expect(canPlant(data, data.plants[1], 100, [{ p: 'big', s: 'floor0' }], 0).ok).toBe(true);
+  });
+  it('바닥 물건 위 작은 화분은 그 물건과 앞뒤를 맞춘다', () => {
+    const d2: PlantsData = { ...data, plants: [...data.plants, { id: 's', name: '작은', cat: 'S', seeds: 1, slot: 'top', img: '', w: 10, h: 16, ax: 5, ay: 14, unlock: 0 }],
+      slots: [{ top: [[50, 40], [80, 60, 75]] }] };
+    const [a, b] = placeGarden(d2, 0, [{ p: 's', s: 'top0' }, { p: 's', s: 'top1' }]);
+    expect([a.layer, b.layer, b.base]).toEqual(['back', 'floor', 75.5]);
   });
 });

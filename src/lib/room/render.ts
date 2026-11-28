@@ -233,14 +233,15 @@ export function createRenderer(la: LoadedArt) {
     // 납작한 러그(base 0)는 밟고 지나간다
     const blocks = floor.filter((f) => f.base > 0 && !f.id.startsWith('plant:')).map((f) => [f.x - 3, f.base - 7, f.x + f.w + 3, f.base + 3] as [number, number, number, number]);
     // 바닥 식물은 화분 폭만큼만 막는다(잎은 위로 퍼져 있어 지나갈 수 있다)
-    for (const g of plantFloor) {
+    const grounded = plantFloor.filter((g) => g.slot.kind !== 'top');   // 책 더미 위 작은 화분은 길을 막지 않는다
+    for (const g of grounded) {
       const half = (g.plant.foot ?? g.plant.w / 3) / 2 + 2, cx = g.slot.x;
       blocks.push([cx - half, g.base - 6, cx + half, g.base + 3]);
     }
     const need: Record<string, ItemId> = { sofa: 'chair' };
     const poi = (L.walk?.poi ?? []).filter((q) => q.kind !== 'plant' && (!need[q.kind] || on(need[q.kind])));
     // 바닥 식물 옆에 서서 바라보기
-    for (const g of plantFloor) {
+    for (const g of grounded) {
       const half = (g.plant.foot ?? 20) / 2, right = g.slot.x > L.W / 2;
       poi.push({ kind: 'plant', x: Math.round(g.slot.x + (right ? -half - 14 : half + 14)), y: g.base, face: right ? 'right' : 'left' });
     }

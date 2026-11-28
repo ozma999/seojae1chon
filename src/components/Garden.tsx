@@ -6,7 +6,7 @@ import type { World } from '@/lib/room/render';
 import type { RoomState } from '@/lib/room/types';
 import { pickedTheme } from '@/lib/room/logic';
 import {
-  canPlant, fits, levelSlots, parseGarden, seedsTotal, seedsUsed, serializeGarden,
+  canPlant, fits, hiddenEntries, levelSlots, parseGarden, placeGarden, seedsTotal, seedsUsed, serializeGarden,
   type GardenEntry, type PlantCat, type PlantDef, type PlantsData, type Slot,
 } from '@/lib/room/garden';
 
@@ -31,13 +31,15 @@ export function Garden({ r }: { r: Renderer }) {
   const n = entries.length, g = parseGarden(profile.picks), total = seedsTotal(data, n), left = total - seedsUsed(data, g);
   const li = world?.li ?? 0, L = world?.level, slots = levelSlots(data, li);
   const defOf = (id: string) => data.plants.find((p) => p.id === id);
-  const taken = new Map(g.map((e) => [e.s, e]));
+  // 이 방에 보이는 식물만 자리를 차지한다. 자리가 없는 식물은 아래 '보관 중'에서 다시 심거나 뽑는다
+  const taken = new Map(placeGarden(data, li, g).map((d) => [d.slot.key, g.find((e) => e.s === d.slot.key && e.p === d.plant.id)!]));
+  const hidden = world ? hiddenEntries(data, li, g) : [];
   const save = (next: GardenEntry[], msg: string) =>
     updateProfile({ picks: { ...profile.picks, garden: serializeGarden(next) } }).then(() => { say(msg); setMode({ kind: 'idle' }); }, (e: Error) => say(e.message));
 
   const tapSlot = (s: Slot) => {
     if (mode.kind === 'plant') save([...g, { p: mode.p.id, s: s.key }], `『${mode.p.name}』을(를) 심었어요 · 남은 씨앗 ${left - mode.p.seeds}개`);
-    else if (mode.kind === 'move') save(g.map((e) => (e.s === mode.e.s ? { ...e, s: s.key } : e)), '자리를 옮겼어요');
+    else if (mode.kind === 'move') save(g.map((e) => (e.s === mode.e.s && e.p === mode.e.p ? { ...e, s: s.key } : e)), '자리를 옮겼어요');
     else { const e = taken.get(s.key); if (e) setMode({ kind: 'sel', e }); }
   };
   const moving = mode.kind === 'move' ? defOf(mode.e.p) : null;
@@ -49,7 +51,8 @@ export function Garden({ r }: { r: Renderer }) {
   return (
     <section className="garden" id="garden">
       <h2 className="shelfh">식물 정원</h2>
-      <p className="seeds">남은 씨앗 <b>{left}</b>개 <span className="muted small">· 10권마다 1개 (모두 {total}개 · 심은 식물 {g.length}개)</span></p>
+      <p className="seeds">남은 씨앗 <b>{Math.max(0, left)}</b>개 <span className="muted small">· 10권마다 1개 (모두 {total}개 · 심은 식물 {g.length}개)</span></p>
+      {left < 0 && <p className="small muted">책이 줄어 씨앗이 {-left}개 모자라요. 심은 식물은 그대로 두고, 새로 심으려면 책을 더 꽂거나 식물을 뽑아 주세요.</p>}
       <div className="gardenroom">
         <RoomCanvas state={state} onWorld={(w) => setWorld(w)} />
         {L && marks.map((s) => {
@@ -70,9 +73,26 @@ export function Garden({ r }: { r: Renderer }) {
         {selDef && mode.kind === 'sel' && <>
           <span><b>{selDef.name}</b></span>
           <button className="chip" onClick={() => setMode({ kind: 'move', e: mode.e })}>옮기기</button>
-          <button className="chip" onClick={() => save(g.filter((x) => x.s !== mode.e.s), `『${selDef.name}』을(를) 뽑았어요 · 씨앗 ${selDef.seeds}개 돌려받음`)}>뽑기 (씨앗 {selDef.seeds}개 돌려받기)</button>
+          <button className="chip" onClick={() => save(g.filter((x) => !(x.s === mode.e.s && x.p === mode.e.p)), `『${selDef.name}』을(를) 뽑았어요 · 씨앗 ${selDef.seeds}개 돌려받음`)}>뽑기 (씨앗 {selDef.seeds}개 돌려받기)</button>
           <button className="chip" onClick={() => setMode({ kind: 'idle' })}>닫기</button></>}
       </div>
+      {hidden.length > 0 && (
+        <div className="ghidden">
+          <p className="small"><b>보관 중인 식물 {hidden.length}개</b> <span className="muted">· 이 방에는 맞는 자리가 없어 보이지 않아요. 방이 넓어지면 다시 보이거나, 지금 빈자리로 옮길 수 있어요.</span></p>
+          <ul>
+            {hidden.map((e) => {
+              const d = defOf(e.p), room = !!d && slots.some((sl) => fits(d, sl) && !taken.has(sl.key));
+              return (
+                <li key={e.p + e.s}>
+                  <span>{d?.name ?? '알 수 없는 식물'}</span>
+                  {room && <button className="chip" onClick={() => setMode({ kind: 'move', e })}>빈자리로 옮기기</button>}
+                  <button className="chip" onClick={() => save(g.filter((x) => !(x.s === e.s && x.p === e.p)), `${d?.name ?? '식물'}을(를) 뽑았어요${d ? ` · 씨앗 ${d.seeds}개 돌려받음` : ''}`)}>뽑기</button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       <div className="tabs3 gtabs" role="tablist">
         {data.cats.map((c) => <button key={c.id} role="tab" aria-selected={cat === c.id} onClick={() => setCat(c.id)}>{c.name}</button>)}
       </div>

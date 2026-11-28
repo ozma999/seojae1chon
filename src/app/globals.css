@@ -406,3 +406,9 @@ a.btn.primary { color: var(--pri-ink); }
 .seedline { margin: 4px 0 0; color: var(--muted); }
 .seedline b { font: 700 16px var(--pixel); color: var(--ink); }
 .seedline a { color: var(--pri); font-weight: 700; margin-left: 4px; }
+.ghidden { background: var(--panel); border: 1px dashed var(--line); border-radius: 10px; padding: 8px 12px; margin: 4px 0 12px; }
+.ghidden p { margin: 0 0 6px; }
+.ghidden ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ghidden li { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ghidden li span { flex: 1; min-width: 7em; }
+.ghidden .chip { margin: 0; }

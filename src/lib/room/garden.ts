@@ -21,12 +21,13 @@ export interface PlantDef {
 type XY = [number, number];
 export interface LevelSlots {
   floor?: [number, number, 'L' | 'M'][];
-  top?: XY[]; hang?: XY[]; wall?: XY[]; pillar?: XY[]; rail?: XY[]; bed?: XY[];
+  /** top: [x, 놓이는 y, (바닥 물건 위라면) 그 물건의 바닥 y — 캐릭터·물건과 앞뒤를 맞춘다] */
+  top?: (XY | [number, number, number])[]; hang?: XY[]; wall?: XY[]; pillar?: XY[]; rail?: XY[]; bed?: XY[];
   sym?: [number, number, number][];
 }
 export interface PlantsData { plants: PlantDef[]; cats: { id: PlantCat; name: string }[]; slots: LevelSlots[]; seedEvery: number }
 
-export interface Slot { key: string; kind: SlotKind; x: number; y: number; size?: 'L' | 'M'; top?: number }
+export interface Slot { key: string; kind: SlotKind; x: number; y: number; size?: 'L' | 'M'; top?: number; depth?: number }
 export interface GardenEntry { p: string; s: string }
 
 export const SLOT_KIND: Record<PlantSlot, SlotKind> = {
@@ -50,7 +51,8 @@ export function seedsUsed(data: PlantsData, g: GardenEntry[]) {
 export function levelSlots(data: PlantsData, li: number): Slot[] {
   const L = data.slots[Math.min(li, data.slots.length - 1)] ?? {}, out: Slot[] = [];
   L.floor?.forEach(([x, y, size], i) => out.push({ key: `floor${i}`, kind: 'floor', x, y, size }));
-  (['top', 'hang', 'wall', 'pillar', 'rail', 'bed'] as const).forEach((k) => L[k]?.forEach(([x, y], i) => out.push({ key: `${k}${i}`, kind: k, x, y })));
+  L.top?.forEach(([x, y, depth], i) => out.push({ key: `top${i}`, kind: 'top', x, y, ...(depth ? { depth } : {}) }));
+  (['hang', 'wall', 'pillar', 'rail', 'bed'] as const).forEach((k) => L[k]?.forEach(([x, y], i) => out.push({ key: `${k}${i}`, kind: k, x, y })));
   L.sym?.forEach(([x, y, top], i) => out.push({ key: `sym${i}`, kind: 'sym', x, y, top }));
   return out;
 }
@@ -69,10 +71,16 @@ export function placeGarden(data: PlantsData, li: number, g: GardenEntry[]): Pla
     used.add(s.key);
     const topAnchor = p.slot === 'hang' || p.slot === 'railTop' || p.slot === 'symTop';
     const ty = p.slot === 'symTop' ? (s.top ?? 0) : p.slot === 'railTop' ? s.y - 2 : s.y;
-    const floorish = s.kind === 'floor' || s.kind === 'bed' || (s.kind === 'sym' && !topAnchor);
-    out.push({ plant: p, slot: s, x: s.x - p.ax, y: ty - p.ay, layer: floorish ? 'floor' : 'back', base: s.y, order: BACK_ORDER[s.kind] });
+    const floorish = s.kind === 'floor' || s.kind === 'bed' || (s.kind === 'sym' && !topAnchor) || !!s.depth;
+    out.push({ plant: p, slot: s, x: s.x - p.ax, y: ty - p.ay, layer: floorish ? 'floor' : 'back', base: s.depth ? s.depth + 0.5 : s.y, order: BACK_ORDER[s.kind] });
   }
   return out.sort((a, b) => a.order - b.order || a.base - b.base);
+}
+
+/** 이 방에서 보이지 않는 식물(자리가 없거나 맞지 않음) — 꾸미기에서 다시 심거나 뽑게 한다 */
+export function hiddenEntries(data: PlantsData, li: number, g: GardenEntry[]) {
+  const shown = new Set(placeGarden(data, li, g).map((d) => d.slot.key + '|' + d.plant.id));
+  return g.filter((e) => !shown.has(e.s + '|' + e.p));
 }
 
 /** 지금 심을 수 있는가(씨앗·책 수·빈자리) — 꾸미기 화면 버튼 상태 */
@@ -80,7 +88,8 @@ export function canPlant(data: PlantsData, p: PlantDef, books: number, g: Garden
   if (books < p.unlock) return { ok: false, why: `${p.unlock.toLocaleString()}권부터` };
   const left = seedsTotal(data, books) - seedsUsed(data, g);
   if (left < p.seeds) return { ok: false, why: `씨앗 ${p.seeds}개 필요` };
-  const taken = new Set(g.map((e) => e.s));
+  // 이 방에 실제로 보이는 식물만 자리를 차지한다(자리 없는 식물은 보관 중)
+  const shown = placeGarden(data, li, g), taken = new Set(shown.map((d) => d.slot.key));
   if (p.cat === 'SYM' && g.some((e) => data.plants.find((d) => d.id === e.p)?.cat === 'SYM')) return { ok: false, why: '상징목은 방마다 하나' };
   if (!levelSlots(data, li).some((s) => fits(p, s) && !taken.has(s.key))) return { ok: false, why: '이 방엔 빈자리가 없어요' };
   return { ok: true, why: '' };
